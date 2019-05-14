@@ -19,7 +19,6 @@ class SemlaConan(ConanFile):
         cmake = CMake(self)
         cmake.configure(source_folder="src")
         cmake.build()
-
         # Explicit way:
         # self.run('cmake %s/hello %s'
         #          % (self.source_folder, cmake.command_line))

@@ -29,6 +29,7 @@ if (EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
     include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     conan_basic_setup()
     message(STATUS "CMAKE_C_FLAGS_RELEASE=${CMAKE_C_FLAGS_RELEASE}" )
+    add_custom_target(openssl DEPENDS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake")
 else()
     include(ExternalProject)
     set(USE_CONAN_OPENSSL FALSE)
@@ -494,12 +495,19 @@ add_custom_target(
         test_facit
 )
 
+if(UNIX)
+    set(CHMOD chmod +x)
+else()
+    set(CHMOD "${CMAKE_COMMAND}" -E echo )
+endif()
+
 add_custom_command(
     OUTPUT
         ${CMAKE_CURRENT_BINARY_DIR}/test_library/.library/manifest.xml
     COMMAND "${CMAKE_COMMAND}" -E remove_directory test_library
     COMMAND "${CMAKE_COMMAND}" -E echo Extracting from test_library.mol
     COMMAND "${CMAKE_COMMAND}" -E tar xvz test_library.mol
+    COMMAND ${CHMOD} ${CMAKE_CURRENT_BINARY_DIR}/test_library/.library/${LVETARGET}
     DEPENDS
         test_library_mol
     WORKING_DIRECTORY
