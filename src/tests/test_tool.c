@@ -5,21 +5,45 @@
 
 #include "test_tool.h"
 
-#define N_TEST_FILES 2 
-const char *FACIT_FILES[N_TEST_FILES]         = { "package.mo",  "binary.gif" };
-const char *FILES_NOT_ENCRYPTED[N_TEST_FILES] = { "package.mo",  "binary.gif" };
-const char *FILES_ENCRYPTED[N_TEST_FILES]     = { "package.moc", "binary.gif" };
+#define N_TEST_FILES 3 
+const char *FACIT_FILES[N_TEST_FILES]         = { "package.mo",  "Module/package.mo", "binary.gif" };
+const char *FILES_NOT_ENCRYPTED[N_TEST_FILES] = { "package.mo", "Module/package.mo", "binary.gif" };
+const char *FILES_ENCRYPTED[N_TEST_FILES] = { "package.moc", "Module/package.moc", "binary.gif" };
 
 int main(int argc, char **argv)
 {
     char lve_name[100] = "lve_not_set" ;
+    char library_path[10000] = "test_library";
+
+    int n_test_files = N_TEST_FILES;
+    const char** reference = FACIT_FILES;
+    const char** encrypted_files = FILES_ENCRYPTED;
 
     if(1 == argc){
         snprintf (lve_name, sizeof(lve_name), "%s", "lve_linux64");
     } else if (2 == argc) {
         snprintf(lve_name, sizeof(lve_name), "%s", argv[1]);
-    } else {
-        printf("test_tool: Error: only one argument allowed, the name of the lve to use.\n") ;
+    }
+    else if (3 == argc) {
+        snprintf(lve_name, sizeof(lve_name), "%s", argv[1]);
+      
+        snprintf(library_path, sizeof(library_path), "\\\\?\\%s", argv[2]);
+    }
+    else if (5 == argc) {
+        snprintf(lve_name, sizeof(lve_name), "%s", argv[1]);
+
+        snprintf(library_path, sizeof(library_path), "\\\\?\\%s", argv[2]);
+        n_test_files = 1;
+        encrypted_files = &(argv[3]);
+        reference = &(argv[4]);
+    }
+    else {
+        printf("test_tool: Error: unexpected number of arguments \n"
+            "USAGE: test_tool [<lve_name> [<library_path> [[<file_to_request] [<file_to_compare]]] \n"
+               " - lve_name: the name of the lve to use (default: lve_linux64).\n"
+               " - library_path: the name of the test library directory (default: test_library).\n"
+               " - file_to_request: the name of the file in the library to request (default:  package.moc).\n"
+               " - file_to_compare: unencrypted file to compare to in test_facit (default: package.mo).\n");
         exit(1) ;
     }
 
@@ -37,11 +61,12 @@ int main(int argc, char **argv)
         ) ;
 */
 
+    
     test_lib(
         lve_name,
-        N_TEST_FILES,
-        "test_library", FILES_ENCRYPTED,
-        "test_facit", FACIT_FILES
+        n_test_files,
+        library_path, encrypted_files,
+        "test_facit", reference
         ) ;
 
     return display_check_statistics();
@@ -59,7 +84,17 @@ const char * facit_path, const char **facit_files
 
     char lve_path[1024] ;
     snprintf(lve_path, sizeof(lve_path), "%s/.library/%s", library_path, lve_name);
-    
+
+#ifdef WIN32
+    {
+        char* ch = lve_path;
+        while (*ch) {
+            if (*ch == '/') *ch = '\\';
+            ch++;
+        }
+    }
+#endif
+
     lve = mlle_start_executable(lve_path, &error);
         
     check_mlle(lve != NULL, "connect to  LVE", &error);
@@ -76,7 +111,7 @@ const char * facit_path, const char **facit_files
         check_mlle(mlle_tool_libpath(lve, library_path, &error), library_cmd, &error);
         mlle_error_free(&error);
 
-        check_mlle(mlle_tool_feature(lve, "test_licensed_feature", &error), "LICENSED FEATURE", &error);
+        check_mlle(mlle_tool_feature(lve, "test_licensed_feature", &error), "test_licensed_feature", &error);
         mlle_error_free(&error);
 
         check_mlle(!mlle_tool_feature(lve, "test_not_licensed_feature", &error), "NOT LICENSED FEATURE", &error);

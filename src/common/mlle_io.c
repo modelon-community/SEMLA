@@ -51,16 +51,71 @@ mlle_io_read_file(const char *file_path,
     size_t size = 0;
     char *file_buffer = NULL;
     size_t bytes_read = 0;
+    
+#ifdef _WIN32
+    #define MAX_FILEPATH_LENGTH_SUPPORTED 4096
+    char long_file_path[MAX_FILEPATH_LENGTH_SUPPORTED+1];
+    /* On Windows we make extra checks if this is a long path issue */
+    size_t file_name_length = strlen(file_path);
+
+#endif
 
     /* Open file. */
     file = fopen(file_path, "rb");
     if (file == NULL) {
+#ifdef _WIN32
+        char* ch;
+        if (file_name_length > MAX_FILEPATH_LENGTH_SUPPORTED) {
+            mlle_error_set(error, 1, 1, "File name length is too long for %s. Cannot open file.", file_path);
+            return NULL;
+        }
+
+        if ((file_name_length > 255) && strncmp("\\\\?\\", file_path, 4)
+            ) {
+            mlle_error_set(error, 1, 1, "Cannot handle long file name for file %s. Please try to use \\\\?\\ path prefix.", file_path);
+            return NULL;
+        }
+
+        strncpy(long_file_path, file_path, sizeof(long_file_path));
+        {
+            ch = long_file_path;
+            while (*ch) {
+                if (*ch == '/') *ch = '\\';
+                ch++;
+            }
+        }
+        file = fopen(long_file_path, "rb");
+        if (file == NULL) {            
+            if (file_name_length > 255) {
+                mlle_error_set(error, 1, 1, "Cannot handle long file name for file %s.", file_path);
+            }
+            else {
+                mlle_error_set(error, 1, 1, "Couldn't open file %s. The error message was: %s",
+                    file_path, strerror(errno));
+            }
+            return NULL;
+        }
+        file_path = long_file_path;
+#else        
         mlle_error_set(error, 1, 1, "Couldn't open file %s. The error message was: %s",
-                file_path, strerror(errno));
+            file_path, strerror(errno));
         return NULL;
+#endif
     }
 
     status = stat(file_path, &stat_info);
+#ifdef _WIN32
+    // stat cannot handle \\?\ prefix on Windows
+    if ((status == -1) && (fseek(file, 0, SEEK_END) == 0)) {
+        long int pos = ftell(file);
+        rewind(file);
+        if ((pos > 0) && (ftell(file) == 0)) {
+            status = 0;
+            stat_info.st_size = pos;
+        }
+    }
+#endif
+
     if (status == -1) {
         mlle_error_set(error, 1, 1,
                 "Couldn't find file size for %s. The error message was: %s",
@@ -68,7 +123,6 @@ mlle_io_read_file(const char *file_path,
         return NULL;
     }
     size = stat_info.st_size;
-
     /* Allocate buffer. */
     file_buffer = calloc(size + 1, 1);
     if (file_buffer == NULL) {

@@ -357,6 +357,11 @@ add_executable(${LVETARGET}
 )
 
 target_link_libraries(${LVETARGET} license_manager decryptor ${ssl_libs} ${extra_ssl_libs})
+if(MSVC )
+        # add NODEFAULTLIB:libcmt in Debug
+        # into string
+        set_target_properties(${LVETARGET} PROPERTIES LINK_FLAGS_Debug  "/NODEFAULTLIB:libcmt")
+endif()
 
 # --------------------
 # Create tool library.
@@ -453,9 +458,15 @@ add_custom_command( TARGET ${LVETARGET}
 add_custom_target(test_facit
     DEPENDS
         ${CMAKE_CURRENT_LIST_DIR}/tests/test_library
+        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.mo
+        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/binary.gif
+        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/Module/package.mo
+    COMMAND "${CMAKE_COMMAND}" -E echo "Copying test library to test_facit"
     COMMAND "${CMAKE_COMMAND}" -E remove_directory test_facit
     COMMAND
       "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/tests/test_library test_facit
+    COMMAND
+      "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/tests/test_library bin/test_facit
     WORKING_DIRECTORY
         ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -465,6 +476,7 @@ add_custom_target(test_library_mol
         ${CMAKE_CURRENT_BINARY_DIR}/test_library.mol
         packagetool
         ${LVETARGET}
+        test_facit
         )
 
 set(PACKAGE_TEST_LIB_CMD $<TARGET_FILE:packagetool>
@@ -488,6 +500,26 @@ add_custom_command(
         ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+set(LONG_FOLDER_NAME "X01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789/0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${LONG_FOLDER_NAME})
+add_custom_target(test_library_long_path
+    DEPENDS
+        ${CMAKE_CURRENT_BINARY_DIR}/test_library_long_path_marker
+        )
+
+add_custom_command(
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/test_library_long_path_marker
+    DEPENDS 
+        ${CMAKE_CURRENT_BINARY_DIR}/test_library/.library/manifest.xml
+    COMMAND "${CMAKE_COMMAND}" -E echo "Copying test_library into folder with long name"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory test_library ${LONG_FOLDER_NAME}/test_library
+    COMMAND "${CMAKE_COMMAND}" -E touch test_library_mol_marker
+    WORKING_DIRECTORY
+        ${CMAKE_CURRENT_BINARY_DIR}
+        )
+
+
 add_custom_target(
     test_library
     DEPENDS
@@ -505,11 +537,14 @@ add_custom_command(
     OUTPUT
         ${CMAKE_CURRENT_BINARY_DIR}/test_library/.library/manifest.xml
     COMMAND "${CMAKE_COMMAND}" -E remove_directory test_library
-    COMMAND "${CMAKE_COMMAND}" -E echo Extracting from test_library.mol
+    COMMAND "${CMAKE_COMMAND}" -E echo "Extracting from test_library.mol"
     COMMAND "${CMAKE_COMMAND}" -E tar xvz test_library.mol
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory test_library/Module test_library/${LONG_FOLDER_NAME}    
     COMMAND ${CHMOD} ${CMAKE_CURRENT_BINARY_DIR}/test_library/.library/${LVETARGET}
     DEPENDS
         test_library_mol
+        packagetool
+        ${LVETARGET}
     WORKING_DIRECTORY
         ${CMAKE_CURRENT_BINARY_DIR}
     VERBATIM
@@ -519,8 +554,6 @@ add_custom_command(
 # --------------------
 # TESTING
 # --------------------
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/tests/test_facit/package.mo ${CMAKE_CURRENT_LIST_DIR}/tests/test_facit/binary.gif
-	DESTINATION  ${CMAKE_CURRENT_BINARY_DIR}/test_facit)
 
 ENABLE_TESTING()
 
@@ -533,6 +566,23 @@ add_test(NAME package_test_lib
 
 SET_TESTS_PROPERTIES (
     run_test_tool PROPERTIES DEPENDS package_test_lib)
+
+add_test( NAME run_test_tool_single_file COMMAND test_tool ${LVETARGET} ${CMAKE_CURRENT_BINARY_DIR}/test_library ${LONG_FOLDER_NAME}/package.moc Module/package.mo
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+SET_TESTS_PROPERTIES (
+    run_test_tool_single_file PROPERTIES DEPENDS package_test_lib)
+
+add_test( NAME run_test_tool_long_path COMMAND test_tool ${LVETARGET} ${CMAKE_CURRENT_BINARY_DIR}/${LONG_FOLDER_NAME}/test_library
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME package_test_lib_long_path
+    COMMAND "${CMAKE_COMMAND}" --build . --target test_library_long_path --config $<CONFIGURATION>
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    
+SET_TESTS_PROPERTIES (
+    run_test_tool_long_path PROPERTIES DEPENDS package_test_lib_long_path)
+
 
 
 # --------------------

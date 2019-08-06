@@ -126,7 +126,10 @@ mlle_spawn(const char *exec_name,
     /* Start new process. */
     child_handle = _spawnl(_P_NOWAIT, exec_name, exec_name, (char *) NULL);
     if (child_handle == -1) {
-        mlle_error_set_literal(error, 1, 1, "Failed to create a new process.");
+        char errbuf[100];
+        strerror_s(errbuf, sizeof(errbuf), errno);
+            
+        mlle_error_set(error, 1, 1, "Failed to create a new process (%s).", errbuf);
         return NULL;
     }
 
