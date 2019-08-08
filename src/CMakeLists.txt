@@ -319,6 +319,9 @@ set(MLLE_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 set(MLLE_THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/../ThirdParty") # TODO: Need to be included?
 
 # - License manager
+if(NOT TEST_LICENSED_FEATURE)
+    set(TEST_LICENSED_FEATURE test_licensed_feature)
+endif()
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/license_managers ${CMAKE_CURRENT_BINARY_DIR}/license_managers)
 
 # - Decryptor
@@ -557,7 +560,7 @@ add_custom_command(
 
 ENABLE_TESTING()
 
-add_test( NAME run_test_tool COMMAND test_tool --lve ${LVETARGET}
+add_test( NAME run_test_tool COMMAND test_tool --lve ${LVETARGET} --feature ${TEST_LICENSED_FEATURE}
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME package_test_lib
@@ -568,7 +571,7 @@ SET_TESTS_PROPERTIES (
     run_test_tool PROPERTIES DEPENDS package_test_lib)
 
 add_test( NAME run_test_tool_single_file 
-         COMMAND test_tool --lve ${LVETARGET} 
+         COMMAND test_tool --lve ${LVETARGET}  --feature ${TEST_LICENSED_FEATURE}
                 --libpath ${CMAKE_CURRENT_BINARY_DIR}/test_library 
                 --file ${LONG_FOLDER_NAME}/package.moc Module/package.mo
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
@@ -577,7 +580,7 @@ SET_TESTS_PROPERTIES (
     run_test_tool_single_file PROPERTIES DEPENDS package_test_lib)
 
 add_test( NAME run_test_tool_long_path 
-          COMMAND test_tool --lve ${LVETARGET} 
+          COMMAND test_tool --lve ${LVETARGET} --feature ${TEST_LICENSED_FEATURE}
             --libpath ${CMAKE_CURRENT_BINARY_DIR}/${LONG_FOLDER_NAME}/test_library
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
