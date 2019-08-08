@@ -125,11 +125,15 @@ mlle_spawn(const char *exec_name,
 
     /* Start new process. */
     child_handle = _spawnl(_P_NOWAIT, exec_name, exec_name, (char *) NULL);
-    if (child_handle == -1) {
+    if (child_handle == -1) {    
         char errbuf[100];
         strerror_s(errbuf, sizeof(errbuf), errno);
-            
-        mlle_error_set(error, 1, 1, "Failed to create a new process (%s).", errbuf);
+        if (strlen(exec_name) > 255) {
+            mlle_error_set(error, 1, 1, "Failed to start the process (%s). Potentially due to too long executable file name (%s)", errbuf, exec_name);
+        }
+        else {
+            mlle_error_set(error, 1, 1, "Failed to create a new process (%s).", errbuf);
+        }
         return NULL;
     }
 
