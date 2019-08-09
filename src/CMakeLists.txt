@@ -458,6 +458,12 @@ add_custom_command( TARGET ${LVETARGET}
     VERBATIM
 )
 
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/tests/test_library 
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/test_facit)
+file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/test_library 
+            ${CMAKE_CURRENT_BINARY_DIR}/test_facit)
+
 add_custom_target(test_facit
     DEPENDS
         ${CMAKE_CURRENT_LIST_DIR}/tests/test_library
@@ -473,6 +479,8 @@ add_custom_target(test_facit
     WORKING_DIRECTORY
         ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+
 
 add_custom_target(test_library_mol
     DEPENDS
