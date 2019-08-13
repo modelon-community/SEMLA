@@ -62,7 +62,9 @@ int main(int argc, char **argv)
 
     int n_test_files = N_TEST_FILES;
     char encrypted_file[1000];
+    const char *p_encrypted_file[1] = { encrypted_file };
     char ref_file[1000];
+    const char *p_ref_file[1] = { ref_file };
     const char**  reference = FACIT_FILES;
     const char** encrypted_files = FILES_ENCRYPTED;
 
@@ -80,7 +82,7 @@ int main(int argc, char **argv)
         }
         else if (0 == strcmp(argv[i], "--libpath")) {
             i++;
-#ifdef _WIN32
+#ifdef XX_WIN32
             snprintf(library_path, sizeof(library_path), "\\\\?\\%s", argv[i]);
 #else
             snprintf(library_path, sizeof(library_path), "%s", argv[i]);
@@ -95,6 +97,9 @@ int main(int argc, char **argv)
             snprintf(encrypted_file, sizeof(encrypted_file), "%s", argv[i]);
             i++;
             snprintf(ref_file, sizeof(ref_file), "%s", argv[i]);
+            n_test_files = 1;
+            reference = p_ref_file;
+            encrypted_files = p_encrypted_file;
         }
         else if (0 == strcmp(argv[i], "--feature")) {
             i++;
@@ -148,16 +153,6 @@ const char * facit_path, const char **facit_files
 
     char lve_path[1024] ;
     snprintf(lve_path, sizeof(lve_path), "%s/.library/%s", library_path, lve_name);
-
-#ifdef WIN32
-    {
-        char* ch = lve_path;
-        while (*ch) {
-            if (*ch == '/') *ch = '\\';
-            ch++;
-        }
-    }
-#endif
 
     lve = mlle_start_executable(lve_path, &error);
 

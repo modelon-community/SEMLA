@@ -42,7 +42,8 @@ mlle_spawn(const char *exec_name,
            struct mlle_error **error)
 {
     //int flags;
-
+#define LONG_FILE_NAME_MAX 4096
+    char long_name[LONG_FILE_NAME_MAX] = "\\\\?\\";
     const int stdin_fileno = 0;
     const int stdout_fileno = 1;
     int status = 0;
@@ -127,14 +128,29 @@ mlle_spawn(const char *exec_name,
     child_handle = _spawnl(_P_NOWAIT, exec_name, exec_name, (char *) NULL);
     if (child_handle == -1) {    
         char errbuf[100];
+        size_t exe_name_len = strlen(exec_name);
         strerror_s(errbuf, sizeof(errbuf), errno);
-        if (strlen(exec_name) > 255) {
-            mlle_error_set(error, 1, 1, "Failed to start the process (%s). Potentially due to too long executable file name (%s)", errbuf, exec_name);
+        if (exe_name_len > 255) {
+            /* For deep dirs retry with\\?\ prefix and only backward slashes*/
+            if (exe_name_len < LONG_FILE_NAME_MAX - 5) {
+                char* ch = long_name+4;
+                strncpy(long_name + 4, exec_name, LONG_FILE_NAME_MAX - 5);
+                while (*ch) {
+                    if (*ch == '/') *ch = '\\';
+                    ch++;
+                }
+            }
+
+            child_handle = _spawnl(_P_NOWAIT, long_name, long_name, (char *)NULL);
+            if (child_handle == -1) {
+                mlle_error_set(error, 1, 1, "Failed to start the process (%s). Potentially due to too long executable file name (%s)", errbuf, exec_name);
+                return NULL;
+            }
         }
         else {
             mlle_error_set(error, 1, 1, "Failed to create a new process (%s).", errbuf);
+            return NULL;
         }
-        return NULL;
     }
 
     /* Reassociate the usual FD numbers for stdin and stdout with the original

@@ -65,20 +65,23 @@ mlle_io_read_file(const char *file_path,
     if (file == NULL) {
 #ifdef _WIN32
         char* ch;
-        if (file_name_length > MAX_FILEPATH_LENGTH_SUPPORTED) {
+        if (file_name_length > MAX_FILEPATH_LENGTH_SUPPORTED - 4) {
             mlle_error_set(error, 1, 1, "File name length is too long for %s. Cannot open file.", file_path);
             return NULL;
         }
 
         if ((file_name_length > 255) && strncmp("\\\\?\\", file_path, 4)
             ) {
-            mlle_error_set(error, 1, 1, "Cannot handle long file name for file %s. Please try to use \\\\?\\ path prefix.", file_path);
-            return NULL;
+            /* try to use \\?\ prefix for the long path */
+            strncpy(long_file_path, "\\\\?\\", 5);
+            strncpy(long_file_path+4, file_path, sizeof(long_file_path)-4);
         }
-
-        strncpy(long_file_path, file_path, sizeof(long_file_path));
+        else {
+            strncpy(long_file_path, file_path, sizeof(long_file_path));
+        }
+    
         {
-            ch = long_file_path;
+            char* ch = long_file_path;
             while (*ch) {
                 if (*ch == '/') *ch = '\\';
                 ch++;
