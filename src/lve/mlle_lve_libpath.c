@@ -72,6 +72,13 @@ int mlle_lve_libpath(struct mlle_lve_ctx *lve_ctx,
 
     lve_ctx->path_size = path_size;
 
+    lve_ctx->cr_context = mlle_cr_create(lve_ctx->libpath);
+    if (NULL == lve_ctx->cr_context){
+        lve_ctx->tool_error_type = MLLE_PROTOCOL_OTHER_ERROR;
+        lve_ctx->tool_error_msg = "Failed to allocate memory for decryption context.";
+        return 0;
+    }
+
     // Always send a reply.
     mlle_send_simple_form(lve_ctx->ssl, MLLE_PROTOCOL_YES_CMD);
 

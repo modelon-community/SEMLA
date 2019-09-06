@@ -14,9 +14,9 @@
 */
 
 package test_library
-
 model test
     Real x = time;
 end test;
+
 
 end test_library;

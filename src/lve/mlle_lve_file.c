@@ -23,17 +23,18 @@
 #include "mlle_lve_file.h"
 #include "mlle_cr_decrypt.h"
 
-
 int
 mlle_lve_file(struct mlle_lve_ctx *lve_ctx,
               const struct mlle_command *command)
 {
     size_t path_size = 0;
+    char *rel_file_path = NULL; /* relative file path in the library*/
     char *file_path = NULL;
     enum mlle_protocol_error_id error_code = MLLE_PROTOCOL_UNDEFINED_ERROR;
     char *error_msg = NULL;
     size_t file_size = 0;
     char *file_buffer = NULL;
+    char *file_out_buffer = NULL;
     struct mlle_error *error = NULL;
     char *file_extension;
     int decrypted_size = 0;
@@ -52,7 +53,8 @@ mlle_lve_file(struct mlle_lve_ctx *lve_ctx,
         error_msg = "Couldn't allocate memory";
         goto CLEANUP;
     }
-    snprintf(file_path, path_size, "%s/%s", lve_ctx->libpath, command->data);
+    rel_file_path = command->data;
+    snprintf(file_path, path_size, "%s/%s", lve_ctx->libpath, rel_file_path);
 
     file_buffer = mlle_io_read_file(file_path, &file_size, &error);
     if (file_buffer == NULL) {
@@ -68,8 +70,6 @@ mlle_lve_file(struct mlle_lve_ctx *lve_ctx,
     if (file_extension != NULL
         && strcasecmp(file_extension, MLLE_ENCRYPTED_MODELICA_FILE_EXTENSION) == 0)
     {
-        char *file_out_buffer = NULL;
-        char* tmp_buf = NULL;
 
         file_out_buffer = malloc(file_size + 1);
         if (file_out_buffer == NULL) {
@@ -80,10 +80,9 @@ mlle_lve_file(struct mlle_lve_ctx *lve_ctx,
             }
             goto CLEANUP;
         }
-        decrypted_size = mlle_cr_decrypt(file_buffer, file_size, file_out_buffer);
-        tmp_buf = file_buffer;
-        file_buffer = file_out_buffer;
-        free(tmp_buf);
+
+        decrypted_size = mlle_cr_decrypt(lve_ctx->cr_context, rel_file_path, file_buffer, file_size, file_out_buffer);
+        
         if (decrypted_size < 0) {
             error_code = MLLE_PROTOCOL_OTHER_ERROR;
             error_msg = malloc(100 + path_size);
@@ -91,17 +90,22 @@ mlle_lve_file(struct mlle_lve_ctx *lve_ctx,
                 snprintf(error_msg, 100 + path_size, "Failed to decrypt file %s, might be corrupted.", file_path);
             }
             goto CLEANUP;
-        } else {
-            file_size = decrypted_size;
         }
+        file_size = decrypted_size;
+        /* Send file data. */
+        mlle_send_length_form(lve_ctx->ssl, MLLE_PROTOCOL_FILECONT_CMD,
+            file_size, file_out_buffer);
+    }
+    else {
+        /* Send file data. */
+        mlle_send_length_form(lve_ctx->ssl, MLLE_PROTOCOL_FILECONT_CMD,
+            file_size, file_buffer);
     }
 
-    /* Send file data. */
-    mlle_send_length_form(lve_ctx->ssl, MLLE_PROTOCOL_FILECONT_CMD,
-        file_size, file_buffer);
 
 CLEANUP:
     free(file_buffer);
+    free(file_out_buffer);
     free(file_path);
     if (error_msg != NULL) {
         mlle_send_error(lve_ctx->ssl, error_code, error_msg);

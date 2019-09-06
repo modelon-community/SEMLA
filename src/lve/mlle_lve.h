@@ -28,6 +28,7 @@
 #include "mlle_ssl.h"
 #include "mlle_ssl_lve.h"
 #include "mlle_utils.h"
+#include "mlle_cr_decrypt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,6 +50,7 @@ struct mlle_lve_ctx {
     enum mlle_protocol_error_id tool_error_type;
     char *tool_error_msg;
     struct mlle_license *lic_mgr;
+    mlle_cr_context *cr_context;
 };
 
 

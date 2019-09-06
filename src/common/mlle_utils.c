@@ -84,7 +84,7 @@ int mlle_read_command(SSL *ssl,
                   struct mlle_command *command,
                   struct mlle_error **error)
 {
-    size_t bytesRead = 0;
+    int bytesRead = 0;
     size_t totalBytesRead = 0;
     char *token_buffer = NULL;
     enum mlle_grammar_error_t grammar_error = LE_UNKNOWN_ERROR;

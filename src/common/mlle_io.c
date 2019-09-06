@@ -39,6 +39,21 @@
 #define SIZE_T_FMT "%zu"
 #endif
 
+FILE* mlle_log = 0;
+
+void mlle_log_open(const char* envvar) {
+    const char* fname = getenv(envvar);
+    if (NULL == fname) {
+        return;
+    }
+    mlle_log = fopen(fname, "wb");
+    if (mlle_log) {
+        time_t timer;
+        time(&timer);
+        localtime(&timer);
+        fprintf(mlle_log, "Opening logfile at: %s\n", ctime(&timer));
+    }
+}
 
 char *
 mlle_io_read_file(const char *file_path,
@@ -64,7 +79,6 @@ mlle_io_read_file(const char *file_path,
     file = fopen(file_path, "rb");
     if (file == NULL) {
 #ifdef _WIN32
-        char* ch;
         if (file_name_length > MAX_FILEPATH_LENGTH_SUPPORTED - 4) {
             mlle_error_set(error, 1, 1, "File name length is too long for %s. Cannot open file.", file_path);
             return NULL;

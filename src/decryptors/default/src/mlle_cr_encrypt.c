@@ -25,6 +25,9 @@
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
 #include "mlle_cr_crypt.h"
+#include "mlle_cr_context.h"
+#include "mlle_error.h"
+
 #include "random_key_file.h"
 
 #ifdef _WIN32
@@ -59,12 +62,138 @@ static int mlle_cr_seed() {
 #define READ_BUF_LEN (256)
 #define CRYPT_BUF_LEN (READ_BUF_LEN + 32)
 
+
+void mlle_debug_log_key(const unsigned char* key);
+extern FILE* mlle_log;
 /*
- * Read data from stream in until eof, encrypt it, and IV, encrypted data and HMAC (in that order) to stream out.
+    Mask the provided key based on the context and rel_file_path. 
+    Returns:
+        0 - if only key_mask was updated
+        1 - if key_mask and store_mask were updated and store_mask needs to be stored in file (this is for package.mo)
+        -1 - on error.
+*/
+int mlle_mask_key(mlle_cr_context* context, const char* rel_file_path, unsigned char* key, unsigned char* store_mask) {
+    char path[MLLE_LONG_FILE_NAME_MAX];
+    size_t rel_path_len;
+
+    int last_slash_index = 0;
+    int i = 0;
+    char ch;
+    struct mlle_key_mask_map* key_mask_map = context->keymask_map;
+    struct mlle_key_mask_map* map_item = NULL;
+    char* parent_key = 0;
+    int ret = 0;
+
+    if (mlle_log) {
+        fprintf(mlle_log, "mlle_mask_key: got key for %s \n", rel_file_path);
+        mlle_debug_log_key(key);
+    }
+
+
+    while (rel_file_path[i] && (i < MLLE_LONG_FILE_NAME_MAX)) {
+        ch = rel_file_path[i];
+        path[i] = ch;
+        if ((ch == '/') || (ch == '\\')) {
+            last_slash_index = i;
+        }
+        i++;
+    }
+    rel_path_len = i;
+    if (!last_slash_index) {
+        path[0] = '/';
+        path[1] = '\0';
+        last_slash_index = 1;
+    }
+    else {
+        path[last_slash_index] = 0;
+    }
+
+    if (strcasecmp("package.mo", &(rel_file_path[rel_path_len - PACKAGE_MO_STRLEN])) == 0) {
+        HASH_FIND_STR(key_mask_map, path, map_item);
+        if (map_item != NULL) {
+              /* if this is a package.mo file then there should not be any mask for in the table yet*/
+              fprintf(stderr, "Found key mask in the table while working on %s; package.mo must be encrypted first\n", rel_file_path);
+              return -1;
+        }
+        ret = 1;
+
+        if (path[0] != '/') {
+            // if in subdirectory - mask based on parent dir
+            if (mlle_mask_key(context, path, key, store_mask) != 0) {
+                fprintf(stderr, "Unexpected key mask output when processing %s\n", path);
+                return -1;
+            }
+        }
+
+        /* Create and store key mask for this directory */
+        RAND_bytes(store_mask, MLLE_CR_KEY_LEN);
+        map_item = (struct mlle_key_mask_map*)calloc(1, sizeof(struct mlle_key_mask_map) + rel_path_len + 1);
+        if (map_item == NULL) {
+            return -1;
+        }
+        map_item->relpath = map_item->buffer;
+        memcpy(map_item->buffer, path, last_slash_index);
+        memcpy(map_item->key_mask, store_mask, MLLE_CR_KEY_LEN);
+
+        HASH_ADD_KEYPTR(hh, key_mask_map, map_item->relpath, last_slash_index, map_item);
+        context->keymask_map = key_mask_map;
+
+        if (mlle_log) {
+            fprintf(mlle_log, "mlle_mask_key: generated and stored mask for %s \n", map_item->relpath);
+            mlle_debug_log_key(store_mask);
+        }
+
+        return 1;
+    }
+
+    HASH_FIND_STR(key_mask_map, path, map_item);
+    if (map_item == NULL) {
+        /* nothing in the table - grab from parent dir and store */
+        map_item = (struct mlle_key_mask_map*)calloc(1, sizeof(struct mlle_key_mask_map) + rel_path_len + 1);
+        if (map_item == NULL) {
+            fprintf(stderr, "Could not allocate memory when processing %s\n", path);
+            return -1;
+        }
+        map_item->relpath = map_item->buffer;
+        memcpy(map_item->buffer, path, last_slash_index);
+        
+        if (path[0] != '/') {
+            /* Recursive call is only done for subdirs; at top level we'll store zeros */
+            if (mlle_mask_key(context, path, map_item->key_mask, store_mask) != 0) {
+                fprintf(stderr, "Unexpected key mask output when processing %s\n", path);
+                free(map_item);
+                return -1;
+            }
+        }
+        if (mlle_log) {
+            fprintf(mlle_log, "mlle_mask_key: storing mask based on parent for %s \n", map_item->relpath);
+            mlle_debug_log_key(map_item->key_mask);
+        }
+
+        HASH_ADD_KEYPTR(hh, key_mask_map, map_item->relpath, last_slash_index, map_item);
+        context->keymask_map = key_mask_map;
+    }
+
+    /* xor the key with the found mask*/
+    for (i = 0; i < MLLE_CR_KEY_LEN; ++i) {
+        key[i] = key[i] ^ map_item->key_mask[i];
+    }
+    if (mlle_log) {
+        fprintf(mlle_log, "mlle_mask_key: applied key mask for %s \n", rel_file_path);
+        mlle_debug_log_key(key);
+    }
+    return 0;
+}
+
+
+/*
+ * Read data from stream in until eof, encrypt store_mask + data, and write IV, encrypted data and HMAC (in that order) to stream out.
  *
  * Returns zero on error.
  */
-int mlle_cr_encrypt(FILE* in,
+int mlle_cr_encrypt(mlle_cr_context* context, 
+                    const char* rel_file_path,
+                    FILE* in, 
                     FILE* out)
 {
     /* TODO: Enable better error messages. */
@@ -81,6 +210,8 @@ int mlle_cr_encrypt(FILE* in,
     int res = 0;
     int read_len;
     int crypt_len;
+    unsigned char store_mask[MLLE_CR_KEY_LEN];
+    int store_mask_flag = 0;
     DECLARE_MLLE_CR_KEY();
 
     /* Init structures. */
@@ -105,6 +236,10 @@ int mlle_cr_encrypt(FILE* in,
 
     /* Set up encryption and HMAC calculation. */
     INITIALIZE_MLLE_CR_KEY();
+    store_mask_flag = mlle_mask_key(context, rel_file_path, MLLE_CR_KEY, store_mask);
+    if (store_mask_flag < 0) {
+        goto error;
+    }
     if (!EVP_EncryptInit_ex(c_ctx, cipher, NULL, MLLE_CR_KEY, iv))
         goto error;
     mac = (unsigned char*) malloc(mac_len);
@@ -130,6 +265,17 @@ int mlle_cr_encrypt(FILE* in,
 
         /* Update HMAC calculation. */
         if (!HMAC_Update(h_ctx, read_buf, read_len))
+            goto error;
+    }
+
+    if (store_mask_flag) {
+        /* Encrypt and write store_mask. */
+        if (!EVP_EncryptUpdate(c_ctx, crypt_buf, &crypt_len, store_mask, MLLE_CR_KEY_LEN))
+            goto error;
+        if (fwrite(crypt_buf, 1, crypt_len, out) < (size_t)crypt_len)
+            goto error;
+        /* Update HMAC calculation. */
+        if (!HMAC_Update(h_ctx, store_mask, MLLE_CR_KEY_LEN))
             goto error;
     }
 

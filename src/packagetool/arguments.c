@@ -465,7 +465,7 @@ static void printTabs(int nbr) {
 
 static void printAligned(char *str, int maxLength, int level) {
     int i       = 0;
-    int sz      = strlen(str);
+    int sz      = (int)strlen(str);
     int printed = 0;
     int wordSz  = 0;
     int j;

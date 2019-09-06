@@ -30,17 +30,26 @@
 #define BUF_SIZE 10*1024*1024
 char in_buf[BUF_SIZE];
 char out_buf[BUF_SIZE];
-
+extern FILE* mlle_log;
 int main(int argc, char** argv)
 {
     FILE* in = NULL;
     FILE* out = NULL;
     int res = 1;
     int bytes = 0;
+    mlle_cr_context *c;
+    char path[4096];
 
-    if (argc < 3) {
-        fprintf(stderr, "Usage: %s <encrypted file> <cleartext file>\n", argv[0]);
+    mlle_log = stderr;
+
+    if (argc < 4) {
+        fprintf(stderr, "Usage: %s <encrypted basedir> <encrypted file> <cleartext file>\n", argv[0]);
         return 1;
+    }
+
+    c = mlle_cr_create(argv[1]);
+    if (NULL == c) {
+        fprintf(stderr, "Could not create decryption context object\n");
     }
 
     /* OpenSSL initialization stuff. */
@@ -49,20 +58,21 @@ int main(int argc, char** argv)
     OPENSSL_config(NULL);
 
     /* Open input and output files. */
-    in = fopen(argv[1], "rb");
+    snprintf(path, sizeof(path), "%s/%s", argv[1], argv[2]);
+    in = fopen(path, "rb");
     if (in == NULL)
-        fprintf(stderr, "Could not open file %s for reading. Error message was: %s\n", argv[1], strerror(errno));
-    out = fopen(argv[2], "wb");
+        fprintf(stderr, "Could not open file %s for reading. Error message was: %s\n", path, strerror(errno));
+    out = fopen(argv[3], "wb");
     if (out == NULL)
-        fprintf(stderr, "Could not open file %s for writing. Error message was: %s\n", argv[2], strerror(errno));
+        fprintf(stderr, "Could not open file %s for writing. Error message was: %s\n", argv[3], strerror(errno));
 
-    /* Encrypt file. */
+    /* Decrypt file. */
     if (in && out) {
         bytes = (int) fread(in_buf, 1, BUF_SIZE, in);
 
-        bytes = mlle_cr_decrypt(in_buf, bytes, out_buf);
+        bytes = mlle_cr_decrypt(c, argv[2], in_buf, bytes, out_buf);
         if (bytes >= 0) {
-            if (fwrite(out_buf, 1, bytes, out) == bytes)
+            if (fwrite(out_buf , 1, bytes, out) == bytes)
                 res = 0;
         }
         if (res > 0) {
@@ -82,6 +92,7 @@ int main(int argc, char** argv)
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
     ERR_free_strings();
+    mlle_cr_free(c);
 
     return res;
 }

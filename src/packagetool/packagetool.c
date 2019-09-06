@@ -28,7 +28,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-
+extern FILE* mlle_log;
 void doWork(int argc, char **argv)
 {
     char *libPath = NULL;
@@ -60,7 +60,7 @@ void doWork(int argc, char **argv)
     if (!success) { return; }
 
     printf("Start packing library.\n");
-
+    mlle_log = stderr;
     // --------------------
     // Copy source folder.
     // --------------------

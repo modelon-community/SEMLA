@@ -20,7 +20,7 @@
 
 /* libcrypto-compat.h must be first */
 #include "libcrypto-compat.h"
-
+#include "mlle_io.h"
 #include "mlle_lve.h"
 
 
@@ -47,7 +47,9 @@ main(void)
 #endif
 
 {
-    struct mlle_lve_ctx lve_ctx = { stdin, stdout, NULL, NULL, 0, 0, 0, NULL, NULL };
+    struct mlle_lve_ctx lve_ctx = { stdin, stdout, NULL, NULL, 0, 0, 0, NULL, NULL, NULL };
+
+    mlle_log_open("SEMLA_LVE_LOG_FILE");
 
     mlle_lve_init(&lve_ctx);
 

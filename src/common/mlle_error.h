@@ -20,6 +20,7 @@
 
 #define _XOPEN_SOURCE 700
 #include <stdarg.h>
+#define MLLE_LONG_FILE_NAME_MAX 4096
 
 #ifdef __cplusplus
 extern "C" {

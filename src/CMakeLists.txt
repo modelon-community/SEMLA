@@ -183,6 +183,7 @@ include_directories(${CONAN_INCLUDE_DIRS}
                     ${CMAKE_CURRENT_LIST_DIR}/common
                     ${CMAKE_CURRENT_LIST_DIR}/lve
                     ${CMAKE_CURRENT_LIST_DIR}/tool
+                    ${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/uthash
                     ${CMAKE_CURRENT_BINARY_DIR})
 
 
@@ -333,12 +334,9 @@ add_dependencies(decryptor  openssl)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/obfuscators ${CMAKE_CURRENT_BINARY_DIR}/obfuscators)
 
 # --------------
-# Create lve.
+# Create common library.
 # --------------
-add_executable(${LVETARGET}
-    ${PRIVATE_KEY_LVE_H}
-    ${PUBLIC_KEY_TOOL_H}
-    ${CMAKE_CURRENT_LIST_DIR}/lve/lve.c
+add_library(mlle_common
     ${CMAKE_CURRENT_LIST_DIR}/common/mlle_error.c
     ${CMAKE_CURRENT_LIST_DIR}/common/mlle_io.c
     ${CMAKE_CURRENT_LIST_DIR}/common/mlle_parse_command.c
@@ -346,7 +344,17 @@ add_executable(${LVETARGET}
     ${CMAKE_CURRENT_LIST_DIR}/common/mlle_ssl.c
     ${CMAKE_CURRENT_LIST_DIR}/common/mlle_utils.c
     ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.c
-    ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.h
+    ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.h)
+
+# --------------
+# Create lve.
+# --------------
+add_executable(${LVETARGET}
+    ${PRIVATE_KEY_LVE_H}
+    ${PUBLIC_KEY_TOOL_H}
+    ${CMAKE_CURRENT_LIST_DIR}/lve/lve.c
+
+    ${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/uthash/uthash.h
 
     ${CMAKE_CURRENT_LIST_DIR}/lve/mlle_lve.c
     ${CMAKE_CURRENT_LIST_DIR}/lve/mlle_protocol_lve_state.c
@@ -359,7 +367,7 @@ add_executable(${LVETARGET}
     ${CMAKE_CURRENT_LIST_DIR}/lve/mlle_ssl_lve.c
 )
 
-target_link_libraries(${LVETARGET} license_manager decryptor ${ssl_libs} ${extra_ssl_libs})
+target_link_libraries(${LVETARGET} license_manager mlle_common decryptor ${ssl_libs} ${extra_ssl_libs})
 if(MSVC )
         # add NODEFAULTLIB:libcmt in Debug
         # into string
@@ -403,11 +411,10 @@ add_executable(packagetool
     ${CMAKE_CURRENT_LIST_DIR}/packagetool/arguments.c
     ${CMAKE_CURRENT_LIST_DIR}/packagetool/manifest.c
     ${CMAKE_CURRENT_LIST_DIR}/packagetool/utils.c
-    ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.c
-    ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.h
+    ${CMAKE_CURRENT_LIST_DIR}/packagetool/utils.h
 )
 
-target_link_libraries(packagetool ${ssl_libs} ${extra_ssl_libs} decryptor)
+target_link_libraries(packagetool mlle_common ${ssl_libs} ${extra_ssl_libs} decryptor)
 # --------------------
 # Create encrypt_file.
 # --------------------
@@ -415,16 +422,16 @@ add_executable(encrypt_file
     ${CMAKE_CURRENT_LIST_DIR}/encrypt_decrypt/encrypt_file.c
     ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.c
 )
-target_link_libraries(encrypt_file ${ssl_libs} ${extra_ssl_libs} decryptor)
+target_link_libraries(encrypt_file ${ssl_libs} ${extra_ssl_libs} decryptor mlle_common)
 
 # --------------------
 # Create decrypt_file.
 # --------------------
 add_executable(decrypt_file
     ${CMAKE_CURRENT_LIST_DIR}/encrypt_decrypt/decrypt_file.c
-    ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.c
+    ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.c    
 )
-target_link_libraries(decrypt_file ${ssl_libs} ${extra_ssl_libs} decryptor)
+target_link_libraries(decrypt_file ${ssl_libs} ${extra_ssl_libs} decryptor mlle_common)
 
 
 if(WIN32)
@@ -570,6 +577,28 @@ add_custom_command(
 # --------------------
 
 ENABLE_TESTING()
+file(MAKE_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files)
+file(MAKE_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt_files)
+file(MAKE_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files/Module)
+file(MAKE_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt_files/Module)
+
+add_test( NAME encrypt_top_level_package
+        COMMAND encrypt_file ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.mo package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files)
+
+add_test( NAME encrypt_sub_package
+        COMMAND encrypt_file ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/Module/package.mo Module/package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files)
+
+SET_TESTS_PROPERTIES ( encrypt_sub_package PROPERTIES DEPENDS encrypt_top_level_package)
+
+add_test( NAME decrypt_top_level_package
+        COMMAND decrypt_file  ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt_files/package.mo)
+SET_TESTS_PROPERTIES (
+    decrypt_top_level_package PROPERTIES DEPENDS encrypt_top_level_package)
+
+add_test( NAME decrypt_sub_package
+        COMMAND decrypt_file  ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files Module/package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt_files/Module/package.mo)
+SET_TESTS_PROPERTIES (
+    decrypt_sub_package PROPERTIES DEPENDS encrypt_sub_package)
 
 add_test( NAME run_test_tool COMMAND test_tool --lve ${LVETARGET} --feature ${TEST_LICENSED_FEATURE}
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
@@ -584,7 +613,9 @@ SET_TESTS_PROPERTIES (
 add_test( NAME run_test_tool_single_file 
          COMMAND test_tool --lve ${LVETARGET}  --feature ${TEST_LICENSED_FEATURE}
                 --libpath ${CMAKE_CURRENT_BINARY_DIR}/test_library 
-                --file ${LONG_FOLDER_NAME}/package.moc Module/package.mo
+                --file 
+                Module/testLongName_01_567890_02_567890_03_567890_04_567890_05_567890_06_567890_07_567890_08_567890_09_567890_10_567890_11_567890_12_567890_13_567890_14_567890_15_567890.moc 
+                Module/testLongName_01_567890_02_567890_03_567890_04_567890_05_567890_06_567890_07_567890_08_567890_09_567890_10_567890_11_567890_12_567890_13_567890_14_567890_15_567890.mo
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 SET_TESTS_PROPERTIES (
@@ -601,7 +632,6 @@ add_test(NAME package_test_lib_long_path
     
 SET_TESTS_PROPERTIES (
     run_test_tool_long_path PROPERTIES DEPENDS package_test_lib_long_path)
-
 
 
 # --------------------

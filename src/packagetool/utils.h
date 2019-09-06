@@ -18,12 +18,12 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include <mlle_cr_decrypt.h>
 
 #define NO_OF_LVE 4
 #define MAX_PATH_LENGTH 2048
+#define LONG_FILE_NAME_MAX 4096
 #define MAX_STRING 200
-
-typedef enum {FIND_FILE = 0, ENCRYPT_FILE, DELETE_FILE} FileMode;
 
 #if defined(DEBUG) || defined(_DEBUG)
     #define DEBUG_PRINT(...) fprintf( stderr, __VA_ARGS__)
@@ -225,38 +225,34 @@ int cleanUpIconPath();
 
 
 /****************************************************************
- * Traverse a directory structure on Windows and either find,
- * delete or encrypt the file.
+ * Traverse a directory structure on Windows/Linux and find the file.
  *
  * Parameters:
- *      filename - the file to find.
- *      topLevelPath - the path to search from.
- *      mode - type of work to be done with a file,
- *             (FIND_FILE, ENCRYPT_FILE, DELETE_FILE).
+ *      path - the path to search from.
+ *      filename     - the file to find.
  *
  * Returns:
  *      1 - the file was found.
  *      0 - failed to find the file.
  ****************************************************************/
-int traverseDirectoryWin32(char *filename, char *topLevelPath, FileMode filemode);
+int findFileWin32(const char *filename, const char *path);
+int findFileLinux(const char *filename, const char *path);
 
-
-/**************************************************************
- * Traverse a directory structure on Linux and either find,
- * delete or encrypt the file.
- *
- * Parameters:
- *      filename - the file to find.
- *      topLevelPath - the path to search from.
- *      mode - type of work to be done with a file,
- *             (FIND_FILE, ENCRYPT_FILE, DELETE_FILE).
- *
- * Returns:
- *      1 - the file was found.
- *      0 - failed to find the file.
- *************************************************************/
-int traverseDirectoryLinux(char *filename, char *topLevelPath, FileMode filemode);
-
+/****************************************************************
+* Traverse a directory structure on Windows/Linux and encrypt modelica 
+* files.
+*
+* Parameters:
+*      topLevelPath - base directory for the library.
+*      relPath      - the subdirectory to process.
+*      context_in - context for encryption (NULL for top level when relPath is NULL)
+*
+* Returns:
+*      1 - encryption succeeded.
+*      0 - failed .
+****************************************************************/
+int encryptDirectoryWin32(const char *topLevelPath, const char* relPath, mlle_cr_context* context_in);
+int encryptDirectoryLinux(const char *topLevelPath, const char* relPath, mlle_cr_context* context_in);
 
 /**********************************************
  * Extract the filename from a path.
@@ -323,13 +319,15 @@ int isEncryptedFile(char *filename);
  * Encrypt a Modelica file.
  *
  * Parameters:
- *      file - path and filename of file to encrypt.
+ *      context - encryption context
+ *      basedir - top level library directory
+ *      rel_file_path - path and filename of file to encrypt.
  *
  * Returns:
  *      1 - encryption was successful.
  *      0 - encryption failed.
  ****************************************************/
-int encryptFile(char *file);
+int encryptFile(mlle_cr_context*context, const char* basedir, const char *rel_file_path);
 
 
 

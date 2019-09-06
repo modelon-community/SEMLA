@@ -262,7 +262,7 @@ int ssl_write_message(SSL *ssl, char *message, size_t len)
     int errorCode = 0;
     char error[SSL_ERROR_BUF_LEN];
 
-    while ((bytes = SSL_write(ssl, message, len)) < 0)
+    while ((bytes = SSL_write(ssl, message, (int)len)) < 0)
     {
         errorCode = SSL_get_error(ssl, bytes);        
 

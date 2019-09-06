@@ -41,6 +41,12 @@ extern "C" {
 #define MESSAGE_ERROR_BUFFER_SIZE 100
 
 
+/* code is expected to write out debug messages if mlle_log is not NULL */
+extern FILE* mlle_log;
+
+/* Open mlle_log if specified environment variable is defined and points to a filename */
+void mlle_log_open(const char* envvar);
+
 char *
 mlle_io_read_file(const char *file_path,
                   size_t *file_size,

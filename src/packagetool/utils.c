@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include "utils.h"
 #include "arguments.h"
+#include "mlle_cr_decrypt.h"
 
 #ifdef WIN32
 #else
@@ -157,9 +158,9 @@ static char* getTempDirWin32() {
     if (GetTempPathA(MAX_PATH_LENGTH, path) == 0) {
         printf("%s, Failed to fetch temp path\n", __func__);
     } else {
-        pathLength = strlen(path);
+        pathLength = (int)strlen(path);
         generateRandomString(path, pathLength, 10);
-        pathLength = strlen(path);
+        pathLength = (int)strlen(path);
         tempStagingFolder = strdup(path);
         DEBUG_PRINT("%s, tempStagingFolder = %s\n", __func__, tempStagingFolder);
     }
@@ -651,7 +652,6 @@ int prepareIconFile()
  *************************************************/
 int locateIconFile()
 {
-    FileMode filemode;
     char *filename = NULL;
     char *value = NULL;
     int result = 0;
@@ -669,14 +669,12 @@ int locateIconFile()
     // Extract filename from the path.
     filename = extractFilename(value);
 
-    filemode = FIND_FILE;
-
     // Try to find the file.
 #ifdef WIN32
     // Result is always 1.
-    result = traverseDirectoryWin32(filename, getCopiedSourcePath(), filemode);
+    result =findFileWin32(filename, getCopiedSourcePath());
 #else
-    result = traverseDirectoryLinux(filename, getCopiedSourcePath(), filemode);
+    result = findFileLinux(filename, getCopiedSourcePath());
 #endif
 
     // Abort if we didn't find the file.
@@ -702,7 +700,7 @@ static int removeFolderWindows(const char *path) {
     // Try to find file in top-level directory.
     if((hFind = FindFirstFile(searchPath, &fdFile)) == INVALID_HANDLE_VALUE)
     {
-        printf("Traverse directory failed.\n");
+        printf("Remove directory failed for path %s.\n", searchPath);
         return 0;
     }
 
@@ -851,16 +849,11 @@ int deleteTemporaryStagingFolder()
     return !removeFolder(getTempStagingDirectory());
 }
 
-
-
-/************************************************************
-* Traverse a directory structure on Windows and doing work
-* depending on what the filemode parameter is set to.
-************************************************************/
-int traverseDirectoryWin32(char *filename, char *path, FileMode filemode)
-{
+/******************************************************
+ * Find file in a directory
+***************************************************/
+int findFileWin32(const char *filename, const char *path) {
     int result = 1;
-
 #ifdef WIN32
     WIN32_FIND_DATA fdFile;
     HANDLE hFind = NULL;
@@ -871,94 +864,249 @@ int traverseDirectoryWin32(char *filename, char *path, FileMode filemode)
     snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s\\*.*", path);
 
     // Try to find file in top-level directory.
-    if((hFind = FindFirstFile(searchPath, &fdFile)) == INVALID_HANDLE_VALUE)
+    if ((hFind = FindFirstFile(searchPath, &fdFile)) == INVALID_HANDLE_VALUE)
     {
-        printf("Traverse directory failed.\n");
+        printf("File lookup for %s failed for path %s.\n", filename, searchPath);
         return 0;
     }
 
     do
     {
         // The first two directories are always "." and "..".
-        if(strcmp(fdFile.cFileName, ".") != 0
-                && strcmp(fdFile.cFileName, "..") != 0)
+        if (strcmp(fdFile.cFileName, ".") != 0
+            && strcmp(fdFile.cFileName, "..") != 0)
         {
             // Build up our file path using the passed in
             // [path] and the file/foldername we just found:
             snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s\\%s", path, fdFile.cFileName);
 
             // Have we found a folder?
-            if(fdFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            if (fdFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             {
                 // Use recursive to check the folder we found.
-                traverseDirectoryWin32(filename, searchPath, filemode);
+                if (findFileWin32(filename, searchPath) == 1) return 1;
             }
             // Or a regular file?
-            else if(fdFile.dwFileAttributes)
+            else if (fdFile.dwFileAttributes)
             {
-                if (filemode == FIND_FILE)
+                // Find a specific file.
+                if (strcmp(fdFile.cFileName, filename) == 0)
                 {
-                    // Find a specific file.
-                    if (strcmp(fdFile.cFileName, filename) == 0)
-                    {
-                        // Set path to icon file.
-                        if (pathToIcon == NULL)
-                        {
-                            path_len = strlen(searchPath) + 1;
-                            pathToIcon = malloc(path_len);
-                            snprintf(pathToIcon, path_len, "%s", searchPath);
-
-                            //printf("pathToIcon före: %s\n", pathToIcon);
-                            //printf("searchPath: %s\n", searchPath);
-                            //removeTmpFolderName(searchPath, pathToIcon);
-                            //printf("pathToIcon efter: %s\n", pathToIcon);
-                        }
-                        result = 1;
+                    // Set path to icon file.
+                    if (pathToIcon != NULL) {
+                        free(pathToIcon);
                     }
+                    {
+                        path_len = strlen(searchPath) + 1;
+                        pathToIcon = malloc(path_len);
+                        snprintf(pathToIcon, path_len, "%s", searchPath);
+
+                        //printf("pathToIcon före: %s\n", pathToIcon);
+                        //printf("searchPath: %s\n", searchPath);
+                        //removeTmpFolderName(searchPath, pathToIcon);
+                        //printf("pathToIcon efter: %s\n", pathToIcon);
+                    }
+                    result = 1;
                 }
-                else if (filemode == ENCRYPT_FILE)
+            }
+        }
+    } while (FindNextFile(hFind, &fdFile)); //Find the next file
+
+    FindClose(hFind);
+#endif
+
+    return result;
+
+}
+
+int encryptDirectoryWin32(const char *topLevelPath, const char* relPath, mlle_cr_context* context_in)
+{
+    int result = 1;
+#ifdef WIN32
+    WIN32_FIND_DATA fdFile;
+    HANDLE hFind = NULL;
+    char fullPath[MAX_PATH_LENGTH + 1];
+    char searchPath[MAX_PATH_LENGTH + 1];
+    size_t path_len = 0;
+    FILE* in;
+
+    mlle_cr_context* context = context_in;
+
+    // Find all.
+    if (NULL == context){
+        context = mlle_cr_create(topLevelPath);
+        if (NULL == context) {
+            printf("Could not allocated memory for encryption context\n");
+            return 0;
+        }
+        snprintf(fullPath, MAX_PATH_LENGTH + 1, "%s", topLevelPath);
+    }
+    else {
+        snprintf(fullPath, MAX_PATH_LENGTH + 1, "%s\\%s", topLevelPath, relPath);
+    }
+    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s\\*.*", fullPath);
+    // Try to find file in top-level directory.
+    if((hFind = FindFirstFile(searchPath, &fdFile)) == INVALID_HANDLE_VALUE)
+    {
+        printf("Encrypt directory failed for path %s.\n", searchPath);
+        return 0;
+    }
+
+    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s\\package.mo", fullPath);
+    in = fopen(searchPath, "rb");
+    if (in) {
+        fclose(in);
+        if (relPath) {
+            snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s\\""package.mo""", relPath);
+            result = encryptFile(context, topLevelPath, searchPath);
+        }
+        else {
+            result = encryptFile(context, topLevelPath, "package.mo");
+        }
+        
+    }
+    if (result) {
+        do
+        {
+            // The first two directories are always "." and "..".
+            if (strcmp(fdFile.cFileName, ".") != 0
+                && strcmp(fdFile.cFileName, "..") != 0
+                && _stricmp(fdFile.cFileName, "package.mo") != 0)
+            {
+                if (relPath) {
+                    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s\\%s", relPath, fdFile.cFileName);
+                }
+                else {
+                    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s", fdFile.cFileName);
+                }
+                // Have we found a folder?
+                if (fdFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                {
+                    // Use recursive to check the folder we found.
+                    if (!encryptDirectoryWin32(topLevelPath, searchPath, context)) {
+                        result = 0;
+                        break;
+                    };
+                }
+                // Or a regular file?
+                else if (fdFile.dwFileAttributes)
                 {
                     // Encrypt Modelica files.
                     if (isModelicaFile(fdFile.cFileName))
                     {
-                        result = encryptFile(searchPath);
-                    }
-                }
-                else if (filemode == DELETE_FILE)
-                {
-                    // Delete encrypted files when we are done.
-                    if (isEncryptedFile(fdFile.cFileName))
-                    {
-                        // If remove is successful it returns 1.
-                        if (remove(searchPath) == 0)
-                        {
-                            result = 1;
-                        }
-                        else
-                        {
-                            result = 0;
-                        }
+                        result = encryptFile(context, topLevelPath, searchPath);
                     }
                 }
             }
-        }
-    } while(FindNextFile(hFind, &fdFile)); //Find the next file
-
+        } while (FindNextFile(hFind, &fdFile) && result); //Find the next file
+    }
     FindClose(hFind);
+    if (context && (context_in == NULL)) {
+        mlle_cr_free(context);
+    }
 #endif
 
     return result;
 }
 
 /***********************************************************
- * Traverse a directory structure on Linux and doing work
- * depending on what the filemode parameter is set to.
+ * Encrypt modelica files in a directory structure on Linux .
  ***********************************************************/
-int traverseDirectoryLinux(char *filename, char *path, FileMode filemode)
+int encryptDirectoryLinux(const char *topLevelPath, const char* relPath, mlle_cr_context* context_in)
+{
+    int result = 1;
+
+#ifdef linux
+    DIR *d;
+    struct dirent *dir;
+    char fullPath[MAX_PATH_LENGTH + 1];
+    char searchPath[MAX_PATH_LENGTH + 1];
+    size_t path_len = 0;
+    mlle_cr_context* context = context_in;
+    FILE* in;
+
+
+    // Find all.
+    if (NULL == context){
+        context = mlle_cr_create(topLevelPath);
+        if (NULL == context) {
+            printf("Could not allocated memory for encryption context\n");
+            return 0;
+        }
+        snprintf(fullPath, MAX_PATH_LENGTH + 1, "%s", topLevelPath);
+    }
+    else {
+        snprintf(fullPath, MAX_PATH_LENGTH + 1, "%s/%s", topLevelPath, relPath);
+    }
+    // Find all.
+    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s\\package.mo", fullPath);
+    in = fopen(searchPath, "rb");
+    if (in) {
+        fclose(in);
+        result = encryptFile(context, topLevelPath, searchPath);
+    }
+
+    if ( (d = opendir(fullPath)) )
+    {
+        while ( (dir = readdir(d)) != NULL && (result == 1) )
+        {
+            // The first two directories are always "." and "..".
+            if(strcmp(dir->d_name, ".") != 0
+                && strcmp(dir->d_name, "..") != 0
+                && stricmp(dir->d_name, "package.mo") != 0)
+            {
+                if (relPath) {
+                    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s/%s", relPath, dir->d_name);
+                }
+                else {
+                    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s", dir->d_name);
+                }
+
+                // Have we found a folder?
+                if(dir->d_type == DT_DIR)
+                {
+                    // Use recursive to check the folder we found.
+                    if(!encryptDirectoryLinux(filename, searchPath, filemode)) {
+                        result = 0;
+                        break;
+                    }
+                }
+                // Or a file?
+                else if (dir->d_type == DT_REG)
+                {
+                    // Encrypt Modelica files.
+                    if (isModelicaFile(dir->d_name))
+                    {
+                        result = encryptFile(context, topLevelPath, searchPath);
+                    }
+                }
+            }
+        }
+        closedir(d);
+    }
+    else
+    {
+        printf("Failed to open directory %s\n", searchPath);
+        result = 0;
+    }
+    if (context && (context_in == NULL)) {
+        mlle_cr_free(context);
+    }
+
+#endif
+
+    return result;
+}
+
+/******************************************************
+* Find file in a directory
+***************************************************/
+int findFileLinux(const char *filename, const char *path) 
 {
     int result = 0;
 
 #ifdef linux
+
     DIR *d;
     struct dirent *dir;
     char searchPath[MAX_PATH_LENGTH];
@@ -967,17 +1115,17 @@ int traverseDirectoryLinux(char *filename, char *path, FileMode filemode)
     // Find all.
     snprintf(searchPath, MAX_PATH_LENGTH, "%s", path);
 
-    if ( (d = opendir(searchPath)) )
+    if ((d = opendir(searchPath)))
     {
-        while ( (dir = readdir(d)) != NULL)
+        while ((dir = readdir(d)) != NULL)
         {
             // The first two directories are always "." and "..".
-            if(strcmp(dir->d_name, ".") != 0
+            if (strcmp(dir->d_name, ".") != 0
                 && strcmp(dir->d_name, "..") != 0)
             {
                 // Build up our file path using the passed in
                 // [path] and the file/foldername we just found:
-                if (path[(strlen(path)-1)] == '/')
+                if (path[(strlen(path) - 1)] == '/')
                 {
                     snprintf(searchPath, MAX_PATH_LENGTH, "%s%s", path, dir->d_name);
                 }
@@ -987,7 +1135,7 @@ int traverseDirectoryLinux(char *filename, char *path, FileMode filemode)
                 }
 
                 // Have we found a folder?
-                if(dir->d_type == DT_DIR)
+                if (dir->d_type == DT_DIR)
                 {
                     // Use recursive to check the folder we found.
                     traverseDirectoryLinux(filename, searchPath, filemode);
@@ -995,8 +1143,6 @@ int traverseDirectoryLinux(char *filename, char *path, FileMode filemode)
                 // Or a file?
                 else if (dir->d_type == DT_REG)
                 {
-                    if (filemode == FIND_FILE)
-                    {
                         // Find a specific file.
                         if (strcmp(dir->d_name, filename) == 0)
                         {
@@ -1009,31 +1155,6 @@ int traverseDirectoryLinux(char *filename, char *path, FileMode filemode)
 
                             result = 1;
                         }
-                    }
-                    else if (filemode == ENCRYPT_FILE)
-                    {
-                        // Encrypt Modelica files.
-                        if (isModelicaFile(dir->d_name))
-                        {
-                            result = encryptFile(searchPath);
-                        }
-                    }
-                    else if (filemode == DELETE_FILE)
-                    {
-                        // Delete encrypted files when we are done.
-                        if (isEncryptedFile(dir->d_name))
-                        {
-                            // If remove is successful it returns 1.
-                            if (remove(searchPath) == 0)
-                            {
-                                result = 1;
-                            }
-                            else
-                            {
-                                result = 0;
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -1083,7 +1204,8 @@ char *extractFilename(char *path)
 }
 
 /**************************************
- * Extract the filename from a path.
+ * Extract the path from a path+filename.
+ * Allocates memory for the returned string.
  *************************************/
 char *extractPath(char *pathAndFilename)
 {
@@ -1173,22 +1295,17 @@ int isEncryptedFile(char *filename)
 /*****************************
  * Encrypt a Modelica file.
  ****************************/
-int encryptFile(char *file)
+int encryptFile(mlle_cr_context*context, const char* basedir, const char *rel_file_path)
 {
     FILE *in, *out;
-    char *newFile;
     int result = 1;
-    size_t path_len;
+    char file[LONG_FILE_NAME_MAX];
+    char newFile[LONG_FILE_NAME_MAX];
 
-    path_len = strlen(file) + 2;
-    if ( (newFile = malloc(path_len)) == NULL)
-    {
-        printf("Error: Couldn't allocate space for path to encrypted file.\n");
-        result = 0;
-    }
+    snprintf(file, LONG_FILE_NAME_MAX, "%s/%s", basedir, rel_file_path);
 
     // Add a "c" to end of filename so we get an .moc extension.
-    snprintf(newFile, path_len, "%sc", file);
+    snprintf(newFile, LONG_FILE_NAME_MAX, "%sc", file);
 
     // Open file to read from.
     if ( result && ((in = fopen(file, "rb")) == NULL) )
@@ -1204,13 +1321,12 @@ int encryptFile(char *file)
         result = 0;
     }
 
-    if (result && (!mlle_cr_encrypt(in, out)) )
+    if (result && (!mlle_cr_encrypt(context, rel_file_path, in, out)))
     {
         printf("Failed to encrypt file.\n");
         result = 0;
     }
 
-    free(newFile);
     fclose(in);
     fclose(out);
 
@@ -1224,16 +1340,13 @@ int encryptFile(char *file)
 int encryptFiles()
 {
     int result = 1;
-    FileMode filemode;
-
-    filemode = ENCRYPT_FILE;
 
     if (usingEncryption())
     {
 #ifdef WIN32
-        result = traverseDirectoryWin32("", getCopiedSourcePath(), filemode);
+        result = encryptDirectoryWin32(getCopiedSourcePath(), 0, 0);
 #else
-        result = traverseDirectoryLinux("", getCopiedSourcePath(), filemode);
+        result = encryptDirectoryLinux(getCopiedSourcePath(), 0, 0);
 #endif
     }
 
@@ -1386,7 +1499,7 @@ int zipDirectoryWin32(char *path, char *archiveName, int encrypted)
 
                     // Add file to zip archive.
                     result = mz_zip_add_mem_to_archive_file_in_place(archiveName, zipPath, data, buffertSize,
-                      comment, strlen(comment), MZ_BEST_COMPRESSION);
+                      comment, (mz_uint16)strlen(comment), MZ_BEST_COMPRESSION);
 
                     if (!result)
                     {
@@ -1787,7 +1900,7 @@ int copyDirectoryWin32(char *fromPath, char *toPath)
     // Try to find file in top-level directory.
     if((hFind = FindFirstFile(searchPath, &fdFile)) == INVALID_HANDLE_VALUE)
     {
-        printf("Traverse directory failed.\n");
+        printf("Copy directory failed to open %s.\n", searchPath);
         return 0;
     }
 

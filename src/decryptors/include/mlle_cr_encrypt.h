@@ -18,17 +18,21 @@
 
 #include <stdio.h>
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
+typedef struct mlle_cr_context mlle_cr_context;
+
 /*
- * Read data from stream in until eof, encrypt it, and IV, encrypted data and HMAC (in that order) to stream out.
+ * Read data from stream in until eof, encrypt it, and write IV, encrypted store_mask, data and HMAC (in that order) to stream out.
+ * key_masc is a xor masc applied to the key (NULL for no masc)
  *
  * Returns zero on error.
  */
-int mlle_cr_encrypt(FILE* in,
+int mlle_cr_encrypt(mlle_cr_context* context,
+                    const char* relpath,
+                    FILE* in,
                     FILE* out);
 
 

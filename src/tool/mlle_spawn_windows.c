@@ -42,8 +42,7 @@ mlle_spawn(const char *exec_name,
            struct mlle_error **error)
 {
     //int flags;
-#define LONG_FILE_NAME_MAX 4096
-    char long_name[LONG_FILE_NAME_MAX] = "\\\\?\\";
+    char long_name[MLLE_LONG_FILE_NAME_MAX] = "\\\\?\\";
     const int stdin_fileno = 0;
     const int stdout_fileno = 1;
     int status = 0;
@@ -132,9 +131,9 @@ mlle_spawn(const char *exec_name,
         strerror_s(errbuf, sizeof(errbuf), errno);
         if (exe_name_len > 255) {
             /* For deep dirs retry with\\?\ prefix and only backward slashes*/
-            if (exe_name_len < LONG_FILE_NAME_MAX - 5) {
+            if (exe_name_len < MLLE_LONG_FILE_NAME_MAX - 5) {
                 char* ch = long_name+4;
-                strncpy(long_name + 4, exec_name, LONG_FILE_NAME_MAX - 5);
+                strncpy(long_name + 4, exec_name, MLLE_LONG_FILE_NAME_MAX - 5);
                 while (*ch) {
                     if (*ch == '/') *ch = '\\';
                     ch++;

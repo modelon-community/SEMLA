@@ -28,10 +28,10 @@
 
 #define DEFAULT_MSG_SIZE (2048)
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #define strdup(s) _strdup(s)
-#define _CRT_SECURE_NO_WARNINGS
-
+#pragma warning(push)
+#pragma warning(disable : 4996)
 #endif
 
 struct mlle_error {
@@ -79,7 +79,6 @@ mlle_error_new_valist(int domain,
 
     message = calloc(DEFAULT_MSG_SIZE, 1);
     if (message != NULL) {
-#define _CRT_SECURE_NO_WARNINGS
         vsnprintf(message, DEFAULT_MSG_SIZE, format, args);
     }
     error->message = message;
@@ -191,3 +190,7 @@ mlle_error_get_message(struct mlle_error *error)
 {
     return error->message;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

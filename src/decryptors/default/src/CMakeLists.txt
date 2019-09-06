@@ -36,12 +36,17 @@ else()
 endif()
 
 
+include_directories(${MLLE_LIST_DIR}
+                    ${MLLE_LIST_DIR}/decryptors/include
+                    ${MLLE_BINARY_DIR})
+                    
 # Add all required source files to library "license_manager"
 add_library(decryptor
             ${ENCRYPTION_KEY_H}
             mlle_cr_decrypt.c
             mlle_cr_encrypt.c
+            mlle_cr_context.h
+            ../../include/mlle_cr_decrypt.h
+            ../../include/mlle_cr_encrypt.h
 )
-include_directories(${MLLE_LIST_DIR}
-                    ${MLLE_LIST_DIR}/decryptors/include
-                    ${MLLE_BINARY_DIR})
+
