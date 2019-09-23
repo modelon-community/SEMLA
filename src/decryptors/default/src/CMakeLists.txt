@@ -15,6 +15,9 @@
 cmake_minimum_required(VERSION 2.8)
 project(MLLECr)
 
+message(STATUS "MLLE_LIST_DIR = ${MLLE_LIST_DIR}")
+message(STATUS "MLLE_BINARY_DIR = ${MLLE_BINARY_DIR}")
+
 set(ENCRYPTION_KEY_H "${MLLE_BINARY_DIR}/random_key_file.h")
 if(EXISTS ${RANDOM_KEY_DIRECTORY}/random_key_file.h)
 	message("Encryption key ${RANDOM_KEY_DIRECTORY}/random_key_file.h exists, making local copy to build dir")
@@ -23,7 +26,6 @@ if(EXISTS ${RANDOM_KEY_DIRECTORY}/random_key_file.h)
 		COMMAND "${CMAKE_COMMAND}" -E remove -f ${MLLE_BINARY_DIR}/random_key_file.h
 		COMMAND "${CMAKE_COMMAND}" -E copy  ${RANDOM_KEY_DIRECTORY}/random_key_file.h ${MLLE_BINARY_DIR}
 	)
-
 elseif(EXISTS "${MLLE_BINARY_DIR}/random_key_file.h")
     message("Encryption key ${ENCRYPTION_KEY_H} exist in build directory. Using it.")
 else()

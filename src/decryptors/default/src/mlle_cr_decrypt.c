@@ -125,7 +125,7 @@ int mlle_demask_key(mlle_cr_context* context, const char* rel_file_path, unsigne
             key[i] = key[i] ^ map_item->key_mask[i];
        }
        if (mlle_log) {
-           fprintf(mlle_log, "mlle_demask_key: applyed mask for %s\n", rel_file_path);
+           fprintf(mlle_log, "mlle_demask_key: applied mask for %s\n", rel_file_path);
            mlle_debug_log_key(key);
        }
 
@@ -154,7 +154,7 @@ int mlle_demask_key(mlle_cr_context* context, const char* rel_file_path, unsigne
                     key[i] = key[i] ^ out_buffer[ret_code + i];
                 }
                 if (mlle_log) {
-                    fprintf(mlle_log, "mlle_demask_key: applyed mask for %s\n", rel_file_path);
+                    fprintf(mlle_log, "mlle_demask_key: applied mask for %s\n", rel_file_path);
                     mlle_debug_log_key(key);
                 }
 

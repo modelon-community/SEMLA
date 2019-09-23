@@ -422,7 +422,7 @@ add_executable(encrypt_file
     ${CMAKE_CURRENT_LIST_DIR}/encrypt_decrypt/encrypt_file.c
     ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.c
 )
-target_link_libraries(encrypt_file ${ssl_libs} ${extra_ssl_libs} decryptor mlle_common)
+target_link_libraries(encrypt_file  decryptor mlle_common ${ssl_libs} ${extra_ssl_libs})
 
 # --------------------
 # Create decrypt_file.
@@ -431,7 +431,7 @@ add_executable(decrypt_file
     ${CMAKE_CURRENT_LIST_DIR}/encrypt_decrypt/decrypt_file.c
     ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.c    
 )
-target_link_libraries(decrypt_file ${ssl_libs} ${extra_ssl_libs} decryptor mlle_common)
+target_link_libraries(decrypt_file  decryptor mlle_common ${ssl_libs} ${extra_ssl_libs})
 
 
 if(WIN32)

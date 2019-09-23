@@ -37,6 +37,8 @@ int main(int argc, char** argv)
     char* destdir = 0;
     char encrypted[4096];
     mlle_log = stderr;
+    mlle_cr_context* c;
+
     if (argc < 3 || argc > 4) {
         fprintf(stderr, "Usage: %s <cleartext file> <encrypted file> [<basedirdest>]\n"
             "<cleartext file> - name of file to encrypt; absolute path\n"
@@ -50,7 +52,6 @@ int main(int argc, char** argv)
     ERR_load_crypto_strings();
     OpenSSL_add_all_algorithms();
     OPENSSL_config(NULL);
-    mlle_cr_context* c;
 
     /* Open input and output files. */
     in = fopen(argv[1], "rb");

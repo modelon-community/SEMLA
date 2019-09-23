@@ -1039,21 +1039,28 @@ int encryptDirectoryLinux(const char *topLevelPath, const char* relPath, mlle_cr
         snprintf(fullPath, MAX_PATH_LENGTH + 1, "%s/%s", topLevelPath, relPath);
     }
     // Find all.
-    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s\\package.mo", fullPath);
+    snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s/package.mo", fullPath);
     in = fopen(searchPath, "rb");
     if (in) {
         fclose(in);
-        result = encryptFile(context, topLevelPath, searchPath);
+        if (relPath) {
+           snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s/package.mo""", relPath);
+           result = encryptFile(context, topLevelPath, searchPath);
+        }
+        else {
+           result = encryptFile(context, topLevelPath, "package.mo");
+        }
+
     }
 
-    if ( (d = opendir(fullPath)) )
+    if (result &&  (d = opendir(fullPath)) )
     {
         while ( (dir = readdir(d)) != NULL && (result == 1) )
         {
             // The first two directories are always "." and "..".
             if(strcmp(dir->d_name, ".") != 0
                 && strcmp(dir->d_name, "..") != 0
-                && stricmp(dir->d_name, "package.mo") != 0)
+                && strcasecmp(dir->d_name, "package.mo") != 0)
             {
                 if (relPath) {
                     snprintf(searchPath, MAX_PATH_LENGTH + 1, "%s/%s", relPath, dir->d_name);
@@ -1066,7 +1073,7 @@ int encryptDirectoryLinux(const char *topLevelPath, const char* relPath, mlle_cr
                 if(dir->d_type == DT_DIR)
                 {
                     // Use recursive to check the folder we found.
-                    if(!encryptDirectoryLinux(filename, searchPath, filemode)) {
+                    if(!encryptDirectoryLinux(topLevelPath, searchPath, context)) {
                         result = 0;
                         break;
                     }
@@ -1138,7 +1145,7 @@ int findFileLinux(const char *filename, const char *path)
                 if (dir->d_type == DT_DIR)
                 {
                     // Use recursive to check the folder we found.
-                    traverseDirectoryLinux(filename, searchPath, filemode);
+                    findFileLinux(filename, searchPath);
                 }
                 // Or a file?
                 else if (dir->d_type == DT_REG)
@@ -1154,6 +1161,7 @@ int findFileLinux(const char *filename, const char *path)
                             }
 
                             result = 1;
+                            break;
                         }
                 }
             }
