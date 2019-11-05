@@ -165,6 +165,21 @@ int countLVE();
  **************************************************************/
 int copyLVE();
 
+/**************************************************************
+* Copy extra files if those are placed in .library directory next to packagetool.
+* Only done for encrypted libraries to support external Dlls in license management.
+*
+* Returns:
+*      1 - copying of files was successful.
+*      0 - copying files failed.
+*************************************************************/
+int copyExtraFiles();
+
+/****************************************
+* Returns path to the folder where the
+* copied source files are (staging area).
+***************************************/
+char *getCopiedSourcePath();
 
 /*********************************************
  * Copy a file from one location to another.

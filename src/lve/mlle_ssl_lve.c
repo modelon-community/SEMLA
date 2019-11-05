@@ -16,17 +16,19 @@
 /* libcrypto-compat.h must be first */
 #include "libcrypto-compat.h"
 
-#include "mlle_ssl_lve.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "mlle_ssl.h"
-#include "mlle_error.h"
+#include <string.h>
 #include <openssl/ossl_typ.h>
 #include <openssl/asn1t.h>
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 #include <openssl/x509v3.h>
+
+#include "mlle_ssl.h"
+#include "mlle_error.h"
+#include "mlle_ssl_lve.h"
 
 #include "private_key_lve.h"
 

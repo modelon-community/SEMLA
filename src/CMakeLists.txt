@@ -55,6 +55,7 @@ endif(DEFINED GLOBAL_LICENSE_FEATURE)
 
 # Platforms
 # - Bitness
+message(STATUS "CMAKE_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}" )
 if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8" OR (WIN32 AND CMAKE_GENERATOR MATCHES "Win64$"))
     message(STATUS "Target is 64 bits")
     set(BITS64 1)
@@ -215,7 +216,7 @@ endif()
 # -------------------------------------------------
 # Optional directory for the private/public keys.
 # -------------------------------------------------
-set(KEYS_SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/openssl_keys" CACHE STRING "option")
+set(KEYS_SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/openssl_keys" CACHE STRING "Optional directory for the private/public keys.")
 
 # ------------------------------------------------------------
 # Directory to use if keys are missing from source directory.

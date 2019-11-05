@@ -74,6 +74,8 @@ char *tempStagingFolder = NULL;
 // ----
 char *sourcePathFolder = NULL;
 
+// Copy directory to staging folder
+int stageFiles(char *copyFromPath, char *copyToPath);
 
 /*************************
  * Free allocated space.
@@ -552,6 +554,61 @@ int copyLVE()
     return 1;
 }
 
+/**************************************************************
+* Copy extra files if those are placed in .library directory next to packagetool.
+*************************************************************/
+int copyExtraFiles()
+{
+    int ret = 1;
+    char *dir_path = NULL;
+    char *path = NULL;
+    size_t path_len = 0;
+    char *dest_path = NULL;
+    size_t dest_path_len = 0;
+
+
+    // We are done if we are not using encryption.
+    if (!usingEncryption())
+    {
+        return 1;
+    }
+
+    // Path to where executable is running from.
+    dir_path = getExecutableDirectory();
+    if (dir_path == NULL)
+    {
+        printf("Cannot exctract the executable path.\n");
+        return 0;
+    }
+
+    path_len = strlen(dir_path) + 20;
+    path = malloc(path_len);
+    dest_path_len = strlen(getCopiedSourcePath()) + 20;
+    dest_path = malloc(dest_path_len);
+    if ((NULL == path) || (NULL == dest_path)) {
+        printf("Could not allocate memory.\n");
+        ret = 0;
+        goto cleanup;
+    }
+    snprintf(path, path_len, "%s/.library", dir_path);
+    snprintf(dest_path, dest_path_len, "%s/.library", getCopiedSourcePath());
+    // Check if this LVE exists.
+    if (fileExists(path))
+    {
+            // Copy the LVE to .library directory. Abort if a copy fails.
+        if (stageFiles(path, dest_path) == 0) {
+                ret = 0;
+                goto cleanup;
+        }
+    }
+
+cleanup:
+    free(dir_path);
+    free(path);
+    free(dest_path);
+
+    return ret;
+}
 
 
 /*********************************************

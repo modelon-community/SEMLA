@@ -29,7 +29,15 @@
 #include <openssl/err.h>
 
 extern FILE* mlle_log;
-void doWork(int argc, char **argv)
+
+/*
+* package the library. 
+*
+* Returns:
+*      0 - packaging was successful.
+*      >0 - error during packaging.
+*/
+int doWork(int argc, char **argv)
 {
     char *libPath = NULL;
     int success = 0;
@@ -37,7 +45,7 @@ void doWork(int argc, char **argv)
     //check if help was requested
     if (helpRequested(argc, argv)) {
         printArgumentHelp();
-        return;
+        return 0;
     }
 
     printf("\nValidating arguments.\n");
@@ -57,7 +65,7 @@ void doWork(int argc, char **argv)
 
     }
 
-    if (!success) { return; }
+    if (!success) { return 1; }
 
     printf("Start packing library.\n");
     mlle_log = stderr;
@@ -65,47 +73,57 @@ void doWork(int argc, char **argv)
     // Copy source folder.
     // --------------------
     success = copyFolderStructure();
-    if (!success) { return; }
+    if (!success) { return 2 ; }
     // ----------------------------
     // Create the .library folder.
     // ----------------------------
     success = createLibraryFolder();
-    if (!success) { return; }
+    if (!success) { return 3; }
     // --------------------------------------------
     // Locate the icon file in the source folder.
     // --------------------------------------------
     success = prepareIconFile();
-    if (!success) { return; }
+    if (!success) { return 4 ; }
 
     // -------------------------------------------
     // Copy LVE's (if needed) to .library folder.
     // -------------------------------------------
     success = copyLVE();
-    if (!success) { return; }
+    if (!success) { return 5; }
+
+
+    // -------------------------------------------
+    // Copy Extra files if .library folder exists next to packagetool.
+    // -------------------------------------------
+    success = copyExtraFiles();
+    if (!success) { return 6; }
 
     // ------------------------------
     // Create the manifest.xml file.
     // ------------------------------
     success = createManifestFile();
-    if (!success) { return; }
+    if (!success) { return 7; }
 
     // ---------------------------------
     // Encrypt .mo-files to .moc-files.
     // ---------------------------------
     success = encryptFiles();
-    if (!success) { return; }
+    if (!success) { return 8; }
 
     // --------------------------
     // Create a zipped archive.
     // --------------------------
     success = createZipArchive();
-    if (!success) { return; }
+    if (!success) { return 9; }
 
     // -------------------------------------
     // Delete the temporary source folder.
     // -------------------------------------
     success = deleteTemporaryStagingFolder();
-    if (!success) {return; }
+    if (!success) { 
+        printf("Ignoring failure to remove temporary files (%s)\n", getCopiedSourcePath());
+        return 0; 
+    }
 
     if (success)
     {
@@ -113,12 +131,14 @@ void doWork(int argc, char **argv)
     }
 
     cleanUp();
+    return 0;
 }
 
 
 int main(int argc, char **argv)
 {
     int argSize = 0;
+    int ret = 0;
     char errorMsg[200] = {'\0'};
     char *path = NULL;
 
@@ -126,22 +146,21 @@ int main(int argc, char **argv)
     {
         printf("Too few arguments.\n");
         printf("For usage use -h or --help");
-        return 0;
+        return 1;
     }
 
     /* OpenSSL initialization stuff. */
     ERR_load_crypto_strings();
     OpenSSL_add_all_algorithms();
-    OPENSSL_config(NULL);
 
-    doWork(argc, argv);
+    ret = doWork(argc, argv);
 
     /* OpenSSL cleanup stuff. */
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
     ERR_free_strings();
 
-    return 0;
+    return ret;
 }
 
 
