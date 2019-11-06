@@ -23,6 +23,9 @@ endif()
 
 set(LICENSE_MANAGER_SRC_FOLDER ${CMAKE_SOURCE_DIR}/license_managers/${LICENSE_MANAGER}/src)
 set(LICENSE_MANAGER_BIN_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/license_managers/${LICENSE_MANAGER}/src)
+
+message(STATUS "License Managers searched folders: ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_SOURCE_DIR}/license_managers")
+
 # Check that given license manager exists, else list available ones
 if(NOT EXISTS ${LICENSE_MANAGER_SRC_FOLDER}/CMakeLists.txt)
     if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${LICENSE_MANAGER}/src/CMakeLists.txt)

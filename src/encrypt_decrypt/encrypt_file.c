@@ -36,9 +36,10 @@ int main(int argc, char** argv)
     char pathdest[4096];
     char* destdir = 0;
     char encrypted[4096];
-    mlle_log = stderr;
     mlle_cr_context* c;
 
+    mlle_log = stderr;
+	
     if (argc < 3 || argc > 4) {
         fprintf(stderr, "Usage: %s <cleartext file> <encrypted file> [<basedirdest>]\n"
             "<cleartext file> - name of file to encrypt; absolute path\n"

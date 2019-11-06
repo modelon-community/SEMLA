@@ -83,6 +83,7 @@ int mlle_mask_key(mlle_cr_context* context, const char* rel_file_path, unsigned 
     struct mlle_key_mask_map* map_item = NULL;
     char* parent_key = 0;
     int ret = 0;
+    int is_package_mo_file = 0;
 
     if (mlle_log) {
         fprintf(mlle_log, "mlle_mask_key: got key for %s \n", rel_file_path);
@@ -99,16 +100,18 @@ int mlle_mask_key(mlle_cr_context* context, const char* rel_file_path, unsigned 
         i++;
     }
     rel_path_len = i;
-    if (!last_slash_index) {
+    if (last_slash_index) {
+        is_package_mo_file = (strcasecmp("package.mo", &(rel_file_path[last_slash_index+1])) == 0);
+        path[last_slash_index] = 0;
+    }
+    else {
+        is_package_mo_file = (strcasecmp("package.mo", rel_file_path) == 0);
         path[0] = '/';
         path[1] = '\0';
         last_slash_index = 1;
     }
-    else {
-        path[last_slash_index] = 0;
-    }
 
-    if (strcasecmp("package.mo", &(rel_file_path[rel_path_len - PACKAGE_MO_STRLEN])) == 0) {
+    if (is_package_mo_file) {
         HASH_FIND_STR(key_mask_map, path, map_item);
         if (map_item != NULL) {
               /* if this is a package.mo file then there should not be any mask for in the table yet*/

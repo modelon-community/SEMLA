@@ -347,6 +347,8 @@ add_library(mlle_common
     ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.c
     ${CMAKE_CURRENT_LIST_DIR}/common/libcrypto-compat.h)
 
+add_dependencies(mlle_common  openssl)
+    
 # --------------
 # Create lve.
 # --------------
@@ -478,6 +480,7 @@ add_custom_target(test_facit
         ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.mo
         ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/binary.gif
         ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/Module/package.mo
+        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/Module/testInPackage.mo
     COMMAND "${CMAKE_COMMAND}" -E echo "Copying test library to test_facit"
     COMMAND "${CMAKE_COMMAND}" -E remove_directory test_facit
     COMMAND
@@ -591,6 +594,11 @@ add_test( NAME encrypt_sub_package
 
 SET_TESTS_PROPERTIES ( encrypt_sub_package PROPERTIES DEPENDS encrypt_top_level_package)
 
+add_test( NAME encrypt_submodel
+        COMMAND encrypt_file ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/Module/testInPackage.mo Module/testInPackage.moc ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files)
+
+SET_TESTS_PROPERTIES ( encrypt_submodel PROPERTIES DEPENDS encrypt_sub_package)
+
 add_test( NAME decrypt_top_level_package
         COMMAND decrypt_file  ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt_files/package.mo)
 SET_TESTS_PROPERTIES (
@@ -600,6 +608,11 @@ add_test( NAME decrypt_sub_package
         COMMAND decrypt_file  ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files Module/package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt_files/Module/package.mo)
 SET_TESTS_PROPERTIES (
     decrypt_sub_package PROPERTIES DEPENDS encrypt_sub_package)
+
+add_test( NAME decrypt_submodel
+        COMMAND decrypt_file  ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files Module/testInPackage.moc ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt_files/Module/testInPackage.mo)
+SET_TESTS_PROPERTIES (
+    decrypt_submodel PROPERTIES DEPENDS encrypt_submodel)
 
 add_test( NAME run_test_tool COMMAND test_tool --lve ${LVETARGET} --feature ${TEST_LICENSED_FEATURE}
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
@@ -611,6 +624,8 @@ add_test(NAME package_test_lib
 SET_TESTS_PROPERTIES (
     run_test_tool PROPERTIES DEPENDS package_test_lib)
 
+
+if(DO_LONG_FILENAME_TEST OR UNIX)
 add_test( NAME run_test_tool_single_file 
          COMMAND test_tool --lve ${LVETARGET}  --feature ${TEST_LICENSED_FEATURE}
                 --libpath ${CMAKE_CURRENT_BINARY_DIR}/test_library 
@@ -634,6 +649,7 @@ add_test(NAME package_test_lib_long_path
 SET_TESTS_PROPERTIES (
     run_test_tool_long_path PROPERTIES DEPENDS package_test_lib_long_path)
 
+endif()
 
 # --------------------
 # INSTALL

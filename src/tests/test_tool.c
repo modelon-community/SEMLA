@@ -20,9 +20,9 @@ along with this program. If not, contact Modelon AB <http://www.modelon.com>.
 
 #include "test_tool.h"
 
-#define N_TEST_FILES 3 
-const char *FACIT_FILES[N_TEST_FILES]     = { "package.mo",  "Module/package.mo", "binary.gif" };
-const char *FILES_ENCRYPTED[N_TEST_FILES] = { "package.moc", "Module/package.moc", "binary.gif" };
+#define N_TEST_FILES 4 
+const char *FACIT_FILES[N_TEST_FILES]     = { "package.mo",  "Module/package.mo", "Module/testInPackage.mo", "binary.gif" };
+const char *FILES_ENCRYPTED[N_TEST_FILES] = { "package.moc", "Module/package.moc", "Module/testInPackage.moc", "binary.gif" };
 
 void print_usage() {
     printf(
@@ -42,7 +42,7 @@ void print_usage() {
 "--reflibpath <path>  path for the unencrypted library with reference files\n"
 "                    (default: test_facit).\n"
 "--file <ecrypted_file> <reference_file> encrypted file to request and file to compare to\n"
-"                   (default will test 3 files: package.moc,Module/package.moc,binary.gif).\n"
+"                   (default will test 3 files: package.moc,Module/package.moc,Module/testInPackage.moc,binary.gif).\n"
 "--feature <name>   license feature to checkout that is expected to work.\n"
 "                   (default: test_licensed_feature).\n"
 "--no-feature <name>   license feature to try to checkout that is expected to fail.\n"

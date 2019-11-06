@@ -80,7 +80,7 @@ int mlle_demask_key(mlle_cr_context* context, const char* rel_file_path, unsigne
     char *out_buffer = NULL;
     int ret = 0;
     struct mlle_error * error = 0;
-
+    int is_package_mo_file = 0;
     if (mlle_log) {
         fprintf(mlle_log, "mlle_demask_key: %s\n", rel_file_path);
         mlle_debug_log_key(key);
@@ -96,9 +96,16 @@ int mlle_demask_key(mlle_cr_context* context, const char* rel_file_path, unsigne
     }
     rel_path_len = i;
     path[last_slash_index] = 0;
+    
+    if (last_slash_index) {
+        is_package_mo_file = (strcasecmp("package.moc", &(rel_file_path[last_slash_index + 1])) == 0);
+    }
+    else {
+        is_package_mo_file = (strcasecmp("package.moc", rel_file_path) == 0);
+    }
 
     /* check if this is a package.moc file */
-    if (strcasecmp("package.moc", &(rel_file_path[rel_path_len - PACKAGE_MOC_STRLEN])) == 0) {
+    if (is_package_mo_file) {
         if (last_slash_index == 0) {
             /* top level does not have any mask */
             return 1; /* request storing the key after decryption */
