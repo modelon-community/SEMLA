@@ -190,21 +190,23 @@ include_directories(${CONAN_INCLUDE_DIRS}
 
 # Compile obfuscate program.
 add_executable(obfuscate
-               ${CMAKE_CURRENT_LIST_DIR}/embedfile/obfuscate.c
+               ${CMAKE_CURRENT_LIST_DIR}/embedfile/obfuscate.c)
+add_library(obfuscate_utils  
                ${CMAKE_CURRENT_LIST_DIR}/embedfile/obfuscate_utils.c)
-target_link_libraries(obfuscate
-                      ${ssl_libs} ${extra_ssl_libs}
-                      obfuscator_module)
+target_link_libraries(   obfuscate_utils obfuscator_module        )
+target_link_libraries(obfuscate obfuscate_utils
+                      ${ssl_libs}
+                      ${extra_ssl_libs} )
 
 
 # Compile the randomize key program.
 add_executable(randomize_key
                ${CMAKE_CURRENT_LIST_DIR}/embedfile/randomize_key.c
-               ${CMAKE_CURRENT_LIST_DIR}/embedfile/obfuscate_utils.c)
+               )
 target_link_libraries(randomize_key
                       ${ssl_libs}
                       ${extra_ssl_libs}
-                      obfuscator_module)
+                      obfuscate_utils)
 
 # -------------------------------------------
 # Key length to use when generating RSA keys.
@@ -278,8 +280,8 @@ set(PRIVATE_KEY_TOOL_H "${CMAKE_CURRENT_BINARY_DIR}/private_key_tool.h")
 add_custom_command(
     OUTPUT "${PRIVATE_KEY_TOOL_H}"
     COMMAND "${CMAKE_COMMAND}" -E echo
-        Running: obfuscate "${PRIVATE_KEY_TOOL_H}" "${PRIVATE_KEY_TOOL}" PRIVATE_KEY_TOOL LVE_PRIVATE
-    COMMAND obfuscate "${PRIVATE_KEY_TOOL_H}" "${PRIVATE_KEY_TOOL}" PRIVATE_KEY_TOOL LVE_PRIVATE
+        Running: obfuscate "${PRIVATE_KEY_TOOL_H}" "${PRIVATE_KEY_TOOL}" PRIVATE_KEY_TOOL TOOL_PRIVATE
+    COMMAND obfuscate "${PRIVATE_KEY_TOOL_H}" "${PRIVATE_KEY_TOOL}" PRIVATE_KEY_TOOL TOOL_PRIVATE
     DEPENDS "${PRIVATE_KEY_TOOL}" obfuscate
     )
 set_source_files_properties("${PRIVATE_KEY_TOOL_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
@@ -289,8 +291,8 @@ set(PRIVATE_KEY_LVE_H "${CMAKE_CURRENT_BINARY_DIR}/private_key_lve.h")
 add_custom_command(
     OUTPUT "${PRIVATE_KEY_LVE_H}"
     COMMAND "${CMAKE_COMMAND}" -E echo
-        Running: obfuscate "${PRIVATE_KEY_LVE_H}" "${PRIVATE_KEY_LVE}" PRIVATE_KEY_LVE TOOL_PRIVATE
-    COMMAND obfuscate "${PRIVATE_KEY_LVE_H}" "${PRIVATE_KEY_LVE}" PRIVATE_KEY_LVE TOOL_PRIVATE
+        Running: obfuscate "${PRIVATE_KEY_LVE_H}" "${PRIVATE_KEY_LVE}" PRIVATE_KEY_LVE LVE_PRIVATE
+    COMMAND obfuscate "${PRIVATE_KEY_LVE_H}" "${PRIVATE_KEY_LVE}" PRIVATE_KEY_LVE LVE_PRIVATE
     DEPENDS "${PRIVATE_KEY_LVE}" obfuscate
     )
 set_source_files_properties("${PRIVATE_KEY_LVE_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
@@ -399,7 +401,7 @@ add_executable(test_tool
     ${CMAKE_CURRENT_LIST_DIR}/tests/test_tool.c
 )
 
-target_link_libraries(test_tool tool ${ssl_libs} ${extra_ssl_libs})
+target_link_libraries(test_tool tool obfuscate_utils ${ssl_libs} ${extra_ssl_libs})
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/tool/mlle_licensing.h
           ${CMAKE_CURRENT_LIST_DIR}/tool/mlle_types.h

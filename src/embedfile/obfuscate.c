@@ -34,6 +34,7 @@
 
 void read_file(char* file, char** buf, size_t* len);
 
+FILE* open_or_exit(const char* fname, const char* mode);
 
 /***********************************************************************
  * The purpose of this file is to read a ssl-key (in a pem file)
