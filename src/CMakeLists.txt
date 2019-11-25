@@ -280,19 +280,44 @@ add_custom_command(
 set_source_files_properties("${PRIVATE_KEY_LVE_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
 
 # ---------------------------------------------
-# Use public Tool key from source or extract from private.
+# Generate header files for public tool(s) keys authorized with this lve.
 # ---------------------------------------------
 message(STATUS "Adding rule for PUBLIC_KEY_TOOL_H=${CMAKE_CURRENT_BINARY_DIR}/public_key_tool.h")
 set(PUBLIC_KEY_TOOL_H "${CMAKE_CURRENT_BINARY_DIR}/public_key_tool.h")
+set(PUBLIC_KEY_TOOL_ALL_H "${PUBLIC_KEY_TOOL_H}" )
 
 # Check if there is a list file with several public keys
 set(PUBLIC_KEY_TOOL_LIST ${KEYS_SOURCE_DIRECTORY}/public_key_tools.txt)
 if(EXISTS "${PUBLIC_KEY_TOOL_LIST}")
-  set(PUBLIC_KEY_TOOL_NUM "NN")
+  file(STRINGS "${PUBLIC_KEY_TOOL_LIST}" PUBLIC_KEY_TOOL_FILES)
+  list(LENGTH PUBLIC_KEY_TOOL_FILES PUBLIC_KEY_TOOL_NUM)
+  message(STATUS "Found public_key_tools.txt found. Generating for ${PUBLIC_KEY_TOOL_NUM} tools.")
+  set(TOOLI 0)
+  foreach(KEYFILE ${PUBLIC_KEY_TOOL_FILES})
+    message(STATUS "TOOLI=${TOOLI} KEYFILE=${KEYFILE}")
+    set(PUBLIC_KEY_TOOLI_H "${CMAKE_CURRENT_BINARY_DIR}/public_key_tool${TOOLI}.h")
+    message(STATUS "Adding rule for ${PUBLIC_KEY_TOOLI_H}")
+    
+    add_custom_command(
+        OUTPUT "${PUBLIC_KEY_TOOLI_H}"
+        COMMAND "${CMAKE_COMMAND}" -E echo
+            Running: obfuscate "${PUBLIC_KEY_TOOLI_H}" "${KEYS_SOURCE_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC
+        COMMAND obfuscate "${PUBLIC_KEY_TOOLI_H}" "${KEYS_SOURCE_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC
+        DEPENDS "${KEYFILE}" obfuscate
+    )
+    set_source_files_properties("${PUBLIC_KEY_TOOLI_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
+    
+    list(APPEND PUBLIC_KEY_TOOL_ALL_H ${PUBLIC_KEY_TOOLI_H})
+    
+    math(EXPR TOOLI ${TOOLI}+1)
+  endforeach()
 else()
   message(STATUS "No public_key_tools.txt found. Single tool will be supported.")
   set(PUBLIC_KEY_TOOL_NUM 1)
 
+# ---------------------------------------------
+# Use public Tool key from source or extract from private.
+# ---------------------------------------------
   set(PUBLIC_KEY_TOOL0 ${KEYS_SOURCE_DIRECTORY}/public_key_tool.pem)
   if(EXISTS "${PUBLIC_KEY_TOOL0}")
      message("SSL key ${PUBLIC_KEY_TOOL0} exists. Using it.")
@@ -317,7 +342,7 @@ else()
     )
   set_source_files_properties("${PUBLIC_KEY_TOOL0_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
 
-  set(PUBLIC_KEY_TOOL_ALL_H "${PUBLIC_KEY_TOOL_H}" "${PUBLIC_KEY_TOOL0_H}")
+  list(APPEND PUBLIC_KEY_TOOL_ALL_H "${PUBLIC_KEY_TOOL0_H}")
 
 endif()
 
@@ -328,7 +353,7 @@ add_custom_command(
         -D PUBLIC_KEY_TOOL_NUM=${PUBLIC_KEY_TOOL_NUM} 
         -D PUBLIC_KEY_TOOL_H="${PUBLIC_KEY_TOOL_H}" 
         -P "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake"
-    DEPENDS obfuscate "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake"
+    DEPENDS obfuscate "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake" "${KEYS_SOURCE_DIRECTORY}/public_key_tools.txt"
     )
 set_source_files_properties("${PUBLIC_KEY_TOOL_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
 
