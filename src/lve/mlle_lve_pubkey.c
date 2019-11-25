@@ -94,15 +94,22 @@ void mlle_lve_validate_pubkey(struct mlle_lve_ctx *lve_ctx)
 int validate()
 {
     int result = 1;
+    int i;
     DECLARE_PUBLIC_KEY_TOOL();
 
     // TODO check with several tool keys.
     INITIALIZE_PUBLIC_KEY_TOOL();
     // global_tool_pub_key is the public key received in
     // the LVE:s callback method during TLS handshake.
-    if ( strcmp(global_tool_pub_key, PUBLIC_KEY_TOOL) != 0)
-    {
-        // Validation failed.
+    for (i = 0; i < PUBLIC_KEY_TOOL_NUM; i++){
+        if (strcmp(global_tool_pub_key, PUBLIC_KEY_TOOL[i]) == 0)
+        {
+            /* Found matching key. */
+            break;            
+        }
+    }
+    if (i == PUBLIC_KEY_TOOL_NUM) {
+        /* Validation failed. */
         result = 0;
     }
     CLEAR_PUBLIC_KEY_TOOL();
