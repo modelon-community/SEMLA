@@ -1,4 +1,4 @@
-#    Copyright (C) 2015 Modelon AB
+#    Copyright (C) 2015-2019 Modelon AB
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the BSD style license.
@@ -19,14 +19,14 @@ Building instructions
 Prererequisites:
 ----------------
  * For Windows:
-  * CMake 2.8 or better
+  * CMake 3.4 or better
   * Perl, e.g. from http://strawberryperl.com/
   * Nasm, from http://nasm.sourceforge.net/
   * Visual Studio (or MinGW)
   * Miniz ziplibrary (https://code.google.com/p/miniz/)
   
  * For Linux:
-  * CMake 2.8 or better
+  * CMake 3.4 or better
   * Perl
   * Normal compilation tools, e.g. GCC
   * Miniz ziplibrary (https://code.google.com/p/miniz/)
@@ -59,12 +59,12 @@ Building on Windows with Visual Studio:
            -DLICENSE_MANAGER=<choice of license manager> \
            -DOBFUSCATOR=<choice of obfuscator module> \
            -G"NMake Makefiles"
-   $ cmake --build .
-   $ cmake --build . --target install
+   $ cmake --build . --config Release --target install
    
    Note 1: LICENSE_MANAGER and OBFUSCATOR have dummy default implementations if not set.
    Note 2: It is necessary to use the NMake generator due to unknown problems building openssl with other generators.
-   Note 3: If there are ssl-keys in the openssl_keys directory these will be used. Otherwise new ones will be created.
+   Note 3: If there are ssl-keys in the openssl_keys directory these will be used. Otherwise new ones will be created. 
+   KEYS_SOURCE_DIRECTORY option can be used to specify alternative directory.
     
  5. To test the tool library type "test_tool.exe".
      
@@ -90,7 +90,7 @@ Building on Linux:
    Note: If there are ssl-keys in the openssl_keys directory these will be used. Otherwise new ones will be created.
   
    
- 3. To test the tool library type "./test_tool.exe".
+ 3. To test the tool library type "./test_tool".
  
  Note 1: DECRYPTOR and LICENSE_MANAGER have dummy default values if not set.
  Note 2: You must change the part in the test tool that fetch files from LVE.
