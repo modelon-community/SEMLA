@@ -10,7 +10,7 @@ class SemlaConan(ConanFile):
     description = "Safe Encryption of Modelica Libs and Artifacts library"
     topics = ("Modelica", "Encryption", "Licensing")
     settings = "os", "compiler", "build_type", "arch"
-    options = {"shared": [True, False], "openssl_version":["1.0.2q", "1.1.1a"]}
+    options = {"shared": [True, False], "openssl_version":["1.0.2q", "1.1.1a", "1.1.1d"]}
     default_options = { "shared":False, "openssl_version":"1.1.1a"}
     generators = "cmake"
     exports_sources = "src/*", "ThirdParty/*", "!ThirdParty/openssl*"
@@ -36,6 +36,8 @@ class SemlaConan(ConanFile):
     def requirements(self):   
         if self.options.openssl_version =="1.1.1a":
             self.requires("OpenSSL/1.1.1a@conan/stable")
+        elif self.options.openssl_version =="1.1.1d":
+            self.requires("openssl/1.1.1d")
         else:
             self.requires("OpenSSL/1.0.2q@conan/stable")
 
