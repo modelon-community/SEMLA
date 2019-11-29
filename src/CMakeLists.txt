@@ -139,7 +139,7 @@ if(WIN32)
         CONFIGURE_COMMAND ${openssl_conf_cmd} no-shared no-idea no-mdc2 no-rc5 --openssldir=. --prefix=${CMAKE_CURRENT_BINARY_DIR}/openssl
         COMMAND ${openssl_conf_extra}
         BUILD_COMMAND ${openssl_make}
-        INSTALL_COMMAND ${openssl_make} install
+        INSTALL_COMMAND ${openssl_make} install_sw install_ssldirs
         )
     else()
         message(STATUS "Will build OpenSSL 1.1.1a as external project")
@@ -150,7 +150,7 @@ if(WIN32)
         CONFIGURE_COMMAND ${openssl_conf_cmd} no-shared no-idea no-mdc2 no-rc5 --openssldir=. --prefix=${CMAKE_CURRENT_BINARY_DIR}/openssl
         COMMAND ${openssl_conf_extra}
         BUILD_COMMAND ${openssl_make}
-        INSTALL_COMMAND ${openssl_make} install
+        INSTALL_COMMAND ${openssl_make} install_sw install_ssldirs
     )
     endif()
     set(openssl_dir ${CMAKE_CURRENT_BINARY_DIR}/openssl)
