@@ -219,6 +219,8 @@ endif()
 # Optional directory for the private/public keys.
 # -------------------------------------------------
 set(KEYS_SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/openssl_keys" CACHE STRING "Optional directory for the private/public keys.")
+set(LVE_KEYS_DIRECTORY "${KEYS_SOURCE_DIRECTORY}" CACHE STRING "Optional directory for the private/public LVE keys.")
+set(TOOL_KEYS_DIRECTORY "${KEYS_SOURCE_DIRECTORY}" CACHE STRING "Optional directory for the private/public Tool keys.")
 
 # ------------------------------------------------------------
 # Directory to use if keys are missing from source directory.
@@ -228,7 +230,7 @@ set(KEYS_BUILD_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/openssl_keys)
 # --------------------------------------
 # Use Tool key from source or create a new one.
 # --------------------------------------
-set(PRIVATE_KEY_TOOL ${KEYS_SOURCE_DIRECTORY}/private_key_tool.pem)
+set(PRIVATE_KEY_TOOL ${TOOL_KEYS_DIRECTORY}/private_key_tool.pem)
 if(EXISTS "${PRIVATE_KEY_TOOL}")
     message("SSL key ${PRIVATE_KEY_TOOL} exists. Using it.")
 elseif(EXISTS "${KEYS_BUILD_DIRECTORY}/private_key_tool.pem")
@@ -255,7 +257,7 @@ set_source_files_properties("${PRIVATE_KEY_TOOL_H}" PROPERTIES HEADER_FILE_ONLY 
 # -------------------------------------
 # Use LVE key from source or create a new one.
 # -------------------------------------
-set(PRIVATE_KEY_LVE ${KEYS_SOURCE_DIRECTORY}/private_key_lve.pem)
+set(PRIVATE_KEY_LVE ${LVE_KEYS_DIRECTORY}/private_key_lve.pem)
 if(EXISTS "${PRIVATE_KEY_LVE}")
     message("SSL key ${PRIVATE_KEY_LVE} exists. Using it.")
 elseif(EXISTS "${KEYS_BUILD_DIRECTORY}/private_key_lve.pem")
@@ -287,7 +289,7 @@ set(PUBLIC_KEY_TOOL_H "${CMAKE_CURRENT_BINARY_DIR}/public_key_tool.h")
 set(PUBLIC_KEY_TOOL_ALL_H "${PUBLIC_KEY_TOOL_H}" )
 
 # Check if there is a list file with several public keys
-set(PUBLIC_KEY_TOOL_LIST ${KEYS_SOURCE_DIRECTORY}/public_key_tools.txt)
+set(PUBLIC_KEY_TOOL_LIST ${TOOL_KEYS_DIRECTORY}/public_key_tools.txt)
 if(EXISTS "${PUBLIC_KEY_TOOL_LIST}")
   file(STRINGS "${PUBLIC_KEY_TOOL_LIST}" PUBLIC_KEY_TOOL_FILES)
   list(LENGTH PUBLIC_KEY_TOOL_FILES PUBLIC_KEY_TOOL_NUM)
@@ -301,9 +303,9 @@ if(EXISTS "${PUBLIC_KEY_TOOL_LIST}")
     add_custom_command(
         OUTPUT "${PUBLIC_KEY_TOOLI_H}"
         COMMAND "${CMAKE_COMMAND}" -E echo
-            Running: obfuscate "${PUBLIC_KEY_TOOLI_H}" "${KEYS_SOURCE_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC
-        COMMAND obfuscate "${PUBLIC_KEY_TOOLI_H}" "${KEYS_SOURCE_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC
-        DEPENDS "${KEYS_SOURCE_DIRECTORY}/${KEYFILE}" obfuscate
+            Running: obfuscate "${PUBLIC_KEY_TOOLI_H}" "${TOOL_KEYS_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC
+        COMMAND obfuscate "${PUBLIC_KEY_TOOLI_H}" "${TOOL_KEYS_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC
+        DEPENDS "${TOOL_KEYS_DIRECTORY}/${KEYFILE}" obfuscate
     )
     set_source_files_properties("${PUBLIC_KEY_TOOLI_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
     
@@ -318,7 +320,7 @@ else()
 # ---------------------------------------------
 # Use public Tool key from source or extract from private.
 # ---------------------------------------------
-  set(PUBLIC_KEY_TOOL0 ${KEYS_SOURCE_DIRECTORY}/public_key_tool.pem)
+  set(PUBLIC_KEY_TOOL0 ${TOOL_KEYS_DIRECTORY}/public_key_tool.pem)
   if(EXISTS "${PUBLIC_KEY_TOOL0}")
      message("SSL key ${PUBLIC_KEY_TOOL0} exists. Using it.")
   elseif(EXISTS "${KEYS_BUILD_DIRECTORY}/public_key_tool.pem")
@@ -353,7 +355,7 @@ add_custom_command(
         -D PUBLIC_KEY_TOOL_NUM=${PUBLIC_KEY_TOOL_NUM} 
         -D PUBLIC_KEY_TOOL_H="${PUBLIC_KEY_TOOL_H}" 
         -P "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake"
-    DEPENDS obfuscate "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake" "${KEYS_SOURCE_DIRECTORY}/public_key_tools.txt"
+    DEPENDS obfuscate "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake" "${TOOL_KEYS_DIRECTORY}/public_key_tools.txt"
     )
 set_source_files_properties("${PUBLIC_KEY_TOOL_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
 
