@@ -21,8 +21,14 @@ if(NOT DEFINED OBFUSCATOR)
    set(OBFUSCATOR dummy)
 endif()
 
-set(OBFUSCATOR_SRC_FOLDER ${CMAKE_SOURCE_DIR}/obfuscators/${OBFUSCATOR}/src)
-set(OBFUSCATOR_BIN_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/obfuscators/${OBFUSCATOR}/src)
+
+
+if(EXISTS ${OBFUSCATOR}/src/CMakeLists.txt)
+    set(OBFUSCATOR_SRC_FOLDER ${OBFUSCATOR}/src)
+    set(OBFUSCATOR_BIN_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/obfuscator)
+else()
+    set(OBFUSCATOR_SRC_FOLDER ${CMAKE_SOURCE_DIR}/obfuscators/${OBFUSCATOR}/src)
+    set(OBFUSCATOR_BIN_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/obfuscators/${OBFUSCATOR}/src)
 # Check that given obfuscator exists, else list available ones
 if(NOT EXISTS ${OBFUSCATOR_SRC_FOLDER}/CMakeLists.txt)
     if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/${OBFUSCATOR}/src/CMakeLists.txt)
@@ -50,6 +56,7 @@ if(NOT EXISTS ${OBFUSCATOR_SRC_FOLDER}/CMakeLists.txt)
         set(OBFUSCATOR_SRC_FOLDER ${CMAKE_CURRENT_LIST_DIR}/${OBFUSCATOR}/src)
         set(OBFUSCATOR_BIN_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/${OBFUSCATOR}/src)
     endif()
+endif()
 endif()
 
 # Include chosen obfuscator
