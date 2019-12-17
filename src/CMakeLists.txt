@@ -524,14 +524,12 @@ file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/test_facit)
 file(RENAME         ${CMAKE_CURRENT_BINARY_DIR}/test_library ${CMAKE_CURRENT_BINARY_DIR}/test_facit)
 
 file(REMOVE         ${CMAKE_CURRENT_BINARY_DIR}/test_facit/package.in) 
-configure_file(     ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.in ${CMAKE_CURRENT_BINARY_DIR}/test_facit/package.mo  @ONLY)
+configure_file(     ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.in ${CMAKE_CURRENT_BINARY_DIR}/test_facit/package.mo  @ONLY NEWLINE_STYLE UNIX)
 
 add_custom_target(test_library_mol
     DEPENDS
         packagetool
         ${LVETARGET}
-        test_facit
-		${CMAKE_CURRENT_BINARY_DIR}/test_facit/package.mo
         ${CMAKE_CURRENT_BINARY_DIR}/test_library.mol
         )
 
@@ -550,7 +548,6 @@ add_custom_command(
 	
     # TODO: fix, dependencies are in ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
-        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.mo
         ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/binary.gif
         packagetool
         ${LVETARGET}
@@ -585,7 +582,6 @@ add_custom_target(
     test_library
     DEPENDS
         ${CMAKE_CURRENT_BINARY_DIR}/test_library/.library/manifest.xml
-        test_facit
 )
 
 if(UNIX)
