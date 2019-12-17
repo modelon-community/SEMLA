@@ -18,5 +18,12 @@ model test
     Real x = time;
 end test;
 
-
+annotation (
+  uses(Modelica(version="3.2.3")),
+  version="3.4",
+  versionDate="2019-09-30",
+  versionBuild=1,
+  Protection(
+    features={"@TEST_LICENSED_FEATURE@"})) ;
+	
 end test_library;

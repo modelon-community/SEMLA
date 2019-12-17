@@ -17,5 +17,5 @@ elseif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/${LICENSE_MANAGER}/src/CMakeLists.txt)
         "${CMAKE_CURRENT_LIST_DIR}/${LICENSE_MANAGER}/src" 
         "${CMAKE_CURRENT_BINARY_DIR}/license_manager")
 else()
-    message(FATAL_ERROR "Can't find CMakefile for LICENSE_MANAGER: ${LICENSE_MANAGER}")
+    message(FATAL_ERROR "Can't find: ${LICENSE_MANAGER}/src/CMakeLists.txt")
 endif()

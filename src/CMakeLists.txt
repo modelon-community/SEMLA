@@ -518,58 +518,44 @@ add_custom_command( TARGET ${LVETARGET}
     VERBATIM
 )
 
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/tests/test_library 
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/test_facit)
-file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/test_library 
-            ${CMAKE_CURRENT_BINARY_DIR}/test_facit)
+file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/test_library) 
+file(COPY           ${CMAKE_CURRENT_LIST_DIR}/tests/test_library DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/test_facit) 
+file(RENAME         ${CMAKE_CURRENT_BINARY_DIR}/test_library ${CMAKE_CURRENT_BINARY_DIR}/test_facit)
 
-add_custom_target(test_facit
-    DEPENDS
-        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library
-        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.mo
-        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/binary.gif
-        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/Module/package.mo
-        ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/Module/testInPackage.mo
-    COMMAND "${CMAKE_COMMAND}" -E echo "Copying test library to test_facit"
-    COMMAND "${CMAKE_COMMAND}" -E remove_directory test_facit
-    COMMAND
-      "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/tests/test_library test_facit
-    COMMAND
-      "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/tests/test_library bin/test_facit
-    WORKING_DIRECTORY
-        ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-
+file(REMOVE         ${CMAKE_CURRENT_BINARY_DIR}/test_facit/package.in) 
+configure_file(     ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.in ${CMAKE_CURRENT_BINARY_DIR}/test_facit/package.mo  @ONLY)
 
 add_custom_target(test_library_mol
     DEPENDS
-        ${CMAKE_CURRENT_BINARY_DIR}/test_library.mol
         packagetool
         ${LVETARGET}
         test_facit
+		${CMAKE_CURRENT_BINARY_DIR}/test_facit/package.mo
+        ${CMAKE_CURRENT_BINARY_DIR}/test_library.mol
         )
 
 set(PACKAGE_TEST_LIB_CMD $<TARGET_FILE:packagetool>
-            -librarypath ${CMAKE_CURRENT_LIST_DIR}/tests/test_library -version "2.0" -language "3.2" -encrypt "true")
+        -librarypath ${CMAKE_CURRENT_BINARY_DIR}/test_library -version "2.0" -language "3.2" -encrypt "true")
 
 add_custom_command(
-    OUTPUT
-        ${CMAKE_CURRENT_BINARY_DIR}/test_library.mol
-    COMMAND "${CMAKE_COMMAND}" -E touch ${CMAKE_CURRENT_BINARY_DIR}/test_library.mol
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test_library.mol
+	
     COMMAND "${CMAKE_COMMAND}" -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/test_library.mol
-    COMMAND "${CMAKE_COMMAND}" -E echo
-        Running: ${PACKAGE_TEST_LIB_CMD}
-    COMMAND
-        ${PACKAGE_TEST_LIB_CMD}
+    COMMAND "${CMAKE_COMMAND}" -E echo  Running: ${PACKAGE_TEST_LIB_CMD}
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory ${CMAKE_CURRENT_BINARY_DIR}/test_library
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/test_facit ${CMAKE_CURRENT_BINARY_DIR}/test_library
+    COMMAND ${PACKAGE_TEST_LIB_CMD}
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory ${CMAKE_CURRENT_BINARY_DIR}/test_library
+	
+    # TODO: fix, dependencies are in ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
         ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.mo
         ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/binary.gif
         packagetool
         ${LVETARGET}
-    WORKING_DIRECTORY
-        ${CMAKE_CURRENT_BINARY_DIR}
+		
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 if(NOT LONG_FOLDER_NAME)
@@ -616,6 +602,7 @@ add_custom_command(
     COMMAND "${CMAKE_COMMAND}" -E tar xvz test_library.mol
     COMMAND "${CMAKE_COMMAND}" -E copy_directory test_library/Module test_library/${LONG_FOLDER_NAME}    
     COMMAND ${CHMOD} ${CMAKE_CURRENT_BINARY_DIR}/test_library/.library/${LVETARGET}
+
     DEPENDS
         test_library_mol
         packagetool
@@ -637,7 +624,7 @@ file(MAKE_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files/Module)
 file(MAKE_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt_files/Module)
 
 add_test( NAME encrypt_top_level_package
-        COMMAND encrypt_file ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/package.mo package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files)
+        COMMAND encrypt_file ${CMAKE_CURRENT_BINARY_DIR}/test_facit/package.mo package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files)
 
 add_test( NAME encrypt_sub_package
         COMMAND encrypt_file ${CMAKE_CURRENT_LIST_DIR}/tests/test_library/Module/package.mo Module/package.moc ${CMAKE_CURRENT_BINARY_DIR}/test_encrypt_files)
@@ -666,14 +653,13 @@ SET_TESTS_PROPERTIES (
 
 add_test( NAME run_test_tool COMMAND test_tool --lve ${LVETARGET} --feature ${TEST_LICENSED_FEATURE}
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-
+		 
 add_test(NAME package_test_lib
     COMMAND "${CMAKE_COMMAND}" --build . --target test_library --config $<CONFIGURATION>
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-SET_TESTS_PROPERTIES (
-    run_test_tool PROPERTIES DEPENDS package_test_lib)
 
+SET_TESTS_PROPERTIES (run_test_tool PROPERTIES DEPENDS package_test_lib)
 
 if(DO_LONG_FILENAME_TEST OR UNIX)
 add_test( NAME run_test_tool_single_file 
