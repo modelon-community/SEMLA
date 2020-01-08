@@ -648,7 +648,7 @@ if no keys are provided, only for testing purpose, SSL and RANDOMIZER keys are g
 	
 #### User
 
-- The API should make installation procedures for libraries convienient. This is possible with tool support
+- The API should make installation procedures for libraries convenient. This is possible with tool support
 
 - The library is distributed as a single file with a well-defined file extension.
 

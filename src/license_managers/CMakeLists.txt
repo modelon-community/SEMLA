@@ -7,7 +7,7 @@ For default configure with: -DLICENSE_MANAGER=testingdummy
 For custom configure with:  -DLICENSE_MANAGER=<path to license manager>")
 
 elseif(EXISTS ${LICENSE_MANAGER}/src/CMakeLists.txt)
-    add_subdirectory("${LICENSE_MANAGER}/src""${CMAKE_CURRENT_BINARY_DIR}/license_manager")
+    add_subdirectory("${LICENSE_MANAGER}/src" "${CMAKE_CURRENT_BINARY_DIR}/license_manager")
 	
 elseif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/${LICENSE_MANAGER}/src/CMakeLists.txt)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/${LICENSE_MANAGER}/src" "${CMAKE_CURRENT_BINARY_DIR}/license_manager")

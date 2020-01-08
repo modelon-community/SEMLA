@@ -5,7 +5,7 @@ In case you like to contribute, please, consult https://github.com/modelon/contr
 
 See specification for the framework in: [SEMLA specification](doc/SEMLA.md)
 
-See build instructionin: [README](src/README)
+See build instruction in: [README](src/README)
 
 Current implementation supports following protocol commands:
   * VERSION
@@ -18,4 +18,3 @@ Current implementation supports following protocol commands:
 Following commands are not supported:
   * TOOLS
   * LICENSEINFO
->>>>>>> CHANGED: minor documentation updates

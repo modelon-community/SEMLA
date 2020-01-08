@@ -14,10 +14,10 @@ group PERFORMED ONCE
     end
 
     group License Check
-        Tool -> LVE: FEATURE <feature nam>
+        Tool -> LVE: FEATURE <feature name>
         LVE [#blue]-> Tool: YES
 
-        Tool -> LVE: FEATURE <feature nam>
+        Tool -> LVE: FEATURE <feature name>
         LVE [#blue]-> Tool: NO
     end
 end

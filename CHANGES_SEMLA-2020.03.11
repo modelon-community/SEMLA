@@ -1,0 +1,6 @@
+Changes for SEMLA-2020.03.11 from git commit 923b534
+    run: git log 923b534..HEAD --oneline
+
+Build system changes:
+    LICENSE_MANAGER, DECRYPTOR, and OBFUSCATOR aren't set to default implementations anymore.
+    Your call to the build system must define them; see src/README

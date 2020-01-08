@@ -61,7 +61,11 @@ Building on Windows with Visual Studio:
            -G"NMake Makefiles"
    $ cmake --build . --config Release --target install
    
-   Note 1: LICENSE_MANAGER and OBFUSCATOR have dummy default implementations if not set.
+   Note 1: LICENSE_MANAGER, DECRYPTOR, and OBFUSCATOR must be set, default implementations are:
+       OBFUSCATOR: src/obfuscators/dummy
+       DECRYPTOR: src/decryptors/default
+       LICENSE_MANAGER: src/license_managers/testingdummy
+   
    Note 2: It is necessary to use the NMake generator due to unknown problems building openssl with other generators.
    Note 3: If there are ssl-keys in the openssl_keys directory these will be used. Otherwise new ones will be created. 
    KEYS_SOURCE_DIRECTORY option can be used to specify alternative directory.
@@ -92,8 +96,8 @@ Building on Linux:
    
  3. To test the tool library type "./test_tool".
  
- Note 1: DECRYPTOR and LICENSE_MANAGER have dummy default values if not set.
+ Note 1: See Note 1 in "building on Windows"
  Note 2: You must change the part in the test tool that fetch files from LVE.
          If you want to fetch an encrypted file, that file must be encrypted with the
          latest "encrypt_file.exe" that uses the same random key as LVE to encrypt/decrypt files.
-   
+
