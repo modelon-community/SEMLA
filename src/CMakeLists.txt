@@ -557,7 +557,7 @@ add_custom_command(
 
 ENABLE_TESTING()
 
-add_test( NAME run_test_tool COMMAND test_tool ${LVETARGET}
+add_test( NAME run_test_tool COMMAND test_tool --lve ${LVETARGET}
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME package_test_lib
@@ -567,13 +567,18 @@ add_test(NAME package_test_lib
 SET_TESTS_PROPERTIES (
     run_test_tool PROPERTIES DEPENDS package_test_lib)
 
-add_test( NAME run_test_tool_single_file COMMAND test_tool ${LVETARGET} ${CMAKE_CURRENT_BINARY_DIR}/test_library ${LONG_FOLDER_NAME}/package.moc Module/package.mo
+add_test( NAME run_test_tool_single_file 
+         COMMAND test_tool --lve ${LVETARGET} 
+                --libpath ${CMAKE_CURRENT_BINARY_DIR}/test_library 
+                --file ${LONG_FOLDER_NAME}/package.moc Module/package.mo
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 SET_TESTS_PROPERTIES (
     run_test_tool_single_file PROPERTIES DEPENDS package_test_lib)
 
-add_test( NAME run_test_tool_long_path COMMAND test_tool ${LVETARGET} ${CMAKE_CURRENT_BINARY_DIR}/${LONG_FOLDER_NAME}/test_library
+add_test( NAME run_test_tool_long_path 
+          COMMAND test_tool --lve ${LVETARGET} 
+            --libpath ${CMAKE_CURRENT_BINARY_DIR}/${LONG_FOLDER_NAME}/test_library
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME package_test_lib_long_path

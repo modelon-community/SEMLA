@@ -29,11 +29,13 @@ void get_file_and_compare(const char* get_file,
                          struct mlle_connections *lve) ;
 
 void test_lib(
-const char * lve_name, 
-int number_of_files,
-const char * library_path, const char **library_files,
-const char * facit_path, const char **facit_files
-) ;
+    const char * lve_name,
+    const char* feature,
+    const char* no_feature,
+    int number_of_files,
+    const char * library_path, const char **library_files,
+    const char * facit_path, const char **facit_files
+    );
 
 #endif
 

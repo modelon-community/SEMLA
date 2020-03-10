@@ -1,3 +1,18 @@
+/*
+Copyright (C) 2015-2019 Modelon AB
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the BSD style license.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+BSD_License.txt file for more details.
+
+You should have received a copy of the BSD_License.txt file
+along with this program. If not, contact Modelon AB <http://www.modelon.com>.
+*/
+
 // Disable "deprecated" warning.
 #ifdef WIN32
 #define _CRT_SECURE_NO_WARNINGS
@@ -6,74 +21,123 @@
 #include "test_tool.h"
 
 #define N_TEST_FILES 3 
-const char *FACIT_FILES[N_TEST_FILES]         = { "package.mo",  "Module/package.mo", "binary.gif" };
-const char *FILES_NOT_ENCRYPTED[N_TEST_FILES] = { "package.mo", "Module/package.mo", "binary.gif" };
+const char *FACIT_FILES[N_TEST_FILES]     = { "package.mo",  "Module/package.mo", "binary.gif" };
 const char *FILES_ENCRYPTED[N_TEST_FILES] = { "package.moc", "Module/package.moc", "binary.gif" };
+
+void print_usage() {
+    printf(
+"USAGE: test_tool [options]\n"
+" The code runs a unit tests suit and returns 0 status code on success.\n"
+" The unit tests are:\n"
+"   - start LVE and establish secure connection\n"
+"   - checks that protocol version is 1\n"
+"   - set encrypted library path\n"
+"   - checkout a licensed feature\n"
+"   - try checkout a non-licensed feature\n"
+"   - for each test file request it and verify content with reference\n"
+"\nOptions:\n"
+"--lve <lve_name>   the name of the lve to use (default: lve_linux64).\n"
+"--libpath <path>   path (either relative from current directory or absolute)\n"
+"                     for the encrypted library (default: test_library).\n"
+"--reflibpath <path>  path for the unencrypted library with reference files\n"
+"                    (default: test_facit).\n"
+"--file <ecrypted_file> <reference_file> encrypted file to request and file to compare to\n"
+"                   (default will test 3 files: package.moc,Module/package.moc,binary.gif).\n"
+"--feature <name>   license feature to checkout that is expected to work.\n"
+"                   (default: test_licensed_feature).\n"
+"--no-feature <name>   license feature to try to checkout that is expected to fail.\n"
+"                   (default: test_not_licensed_feature).\n"
+"--help              print usage and exit. This must be the only option given.\n"
+    );
+}
 
 int main(int argc, char **argv)
 {
-    char lve_name[100] = "lve_not_set" ;
+    char lve_name[100] = "lve_linux64";
     char library_path[10000] = "test_library";
+    char reflib_path[10000] = "test_facit";
+    
+    char feature[100] = "test_licensed_feature";
+    char no_feature[100] = "test_non_licensed_feature";
 
     int n_test_files = N_TEST_FILES;
-    const char** reference = FACIT_FILES;
+    char encrypted_file[1000];
+    char ref_file[1000];
+    const char**  reference = FACIT_FILES;
     const char** encrypted_files = FILES_ENCRYPTED;
 
-    if(1 == argc){
-        snprintf (lve_name, sizeof(lve_name), "%s", "lve_linux64");
-    } else if (2 == argc) {
-        snprintf(lve_name, sizeof(lve_name), "%s", argv[1]);
-    }
-    else if (3 == argc) {
-        snprintf(lve_name, sizeof(lve_name), "%s", argv[1]);
-      
-        snprintf(library_path, sizeof(library_path), "\\\\?\\%s", argv[2]);
-    }
-    else if (5 == argc) {
-        snprintf(lve_name, sizeof(lve_name), "%s", argv[1]);
+    int i;
 
-        snprintf(library_path, sizeof(library_path), "\\\\?\\%s", argv[2]);
-        n_test_files = 1;
-        encrypted_files = &(argv[3]);
-        reference = &(argv[4]);
+    if(1 == argc){
+        print_usage();
+        exit(1);
     }
-    else {
-        printf("test_tool: Error: unexpected number of arguments \n"
-            "USAGE: test_tool [<lve_name> [<library_path> [[<file_to_request] [<file_to_compare]]] \n"
-               " - lve_name: the name of the lve to use (default: lve_linux64).\n"
-               " - library_path: the name of the test library directory (default: test_library).\n"
-               " - file_to_request: the name of the file in the library to request (default:  package.moc).\n"
-               " - file_to_compare: unencrypted file to compare to in test_facit (default: package.mo).\n");
-        exit(1) ;
+    
+    for (i = 1; i < argc; ++i) {
+        if (0 == strcmp(argv[i], "--lve")) {
+            i++;
+            snprintf(lve_name, sizeof(lve_name), "%s", argv[i]);
+        }
+        else if (0 == strcmp(argv[i], "--libpath")) {
+            i++;
+#ifdef _WIN32
+            snprintf(library_path, sizeof(library_path), "\\\\?\\%s", argv[i]);
+#else
+            snprintf(library_path, sizeof(library_path), "%s", argv[i]);
+#endif
+        }
+        else if (0 == strcmp(argv[i], "--reflibpath")) {
+            i++;
+            snprintf(library_path, sizeof(library_path), "%s", argv[i]);
+        }
+        else if (0 == strcmp(argv[i], "--file")) {
+            i++;
+            snprintf(encrypted_file, sizeof(encrypted_file), "%s", argv[i]);
+            i++;
+            snprintf(ref_file, sizeof(ref_file), "%s", argv[i]);
+        }
+        else if (0 == strcmp(argv[i], "--feature")) {
+            i++;
+            snprintf(feature, sizeof(feature), "%s", argv[i]);
+        }
+        else if (0 == strcmp(argv[i], "--no-feature")) {
+            i++;
+            snprintf(feature, sizeof(no_feature), "%s", argv[i]);
+        }
+        else if (0 == strcmp(argv[i], "--help")) {
+            print_usage();
+            exit(argc == 2);
+        }
+        else {
+            printf("ERROR: Unexpected options. Use 'test_tool --help' for usage.\n");
+            exit(1);
+        }
+    }
+    if (i != argc) {
+        print_usage();
+        printf("\nERROR: Could not parse command line args. Use 'test_tool --help' for usage.\n");
+        exit(1);
     }
 
     printf("#test_tool: Info: using lve: '%s'.\n", lve_name) ;
 
-/*    
-    This test would fail as this test infrastructure
-        - starts an LVE, and non encrypted packages have no LVE
-
     test_lib(
         lve_name,
-        N_TEST_FILES,
-        "test_library_not_encrypted", FILES_NOT_ENCRYPTED,
-        "test_facit", FACIT_FILES
-        ) ;
-*/
-
-    
-    test_lib(
-        lve_name,
+        feature,
+        no_feature,
         n_test_files,
         library_path, encrypted_files,
-        "test_facit", reference
+        reflib_path, reference
         ) ;
 
-    return display_check_statistics();
+    i = display_check_statistics();
+    return i;
 }
 
 void test_lib(
 const char * lve_name, 
+const char* feature,
+const char* no_feature,
 int number_of_files,
 const char * library_path, const char **library_files,
 const char * facit_path, const char **facit_files
@@ -96,25 +160,27 @@ const char * facit_path, const char **facit_files
 #endif
 
     lve = mlle_start_executable(lve_path, &error);
-        
+
     check_mlle(lve != NULL, "connect to  LVE", &error);
     mlle_error_free(&error);
 
     if (lve) {
         int i = -1;
-        char library_cmd[1024];
+        char test_name[1024];
 
-        check_mlle(mlle_tool_version(lve, 1, 6, &error), "VERSION 1.6", &error);
+        check_mlle(mlle_tool_version(lve, 1, 1, &error), "Test protocol version [1, 1]", &error);
         mlle_error_free(&error);
 
-        snprintf(library_cmd, sizeof(library_cmd), "SET LIBRARY PATH ('%s')", library_path);
-        check_mlle(mlle_tool_libpath(lve, library_path, &error), library_cmd, &error);
+        snprintf(test_name, sizeof(test_name), "Test set library path ('%s')", library_path);
+        check_mlle(mlle_tool_libpath(lve, library_path, &error), test_name, &error);
         mlle_error_free(&error);
 
-        check_mlle(mlle_tool_feature(lve, "test_licensed_feature", &error), "test_licensed_feature", &error);
+        snprintf(test_name, sizeof(test_name), "Test valid feature ('%s')", feature);
+        check_mlle(mlle_tool_feature(lve, feature, &error), test_name, &error);
         mlle_error_free(&error);
 
-        check_mlle(!mlle_tool_feature(lve, "test_not_licensed_feature", &error), "NOT LICENSED FEATURE", &error);
+        snprintf(test_name, sizeof(test_name), "Test invalid feature ('%s')", no_feature);
+        check_mlle(!mlle_tool_feature(lve, no_feature, &error), test_name, &error);
         mlle_error_free(&error);
 
         for (i = 0; i < number_of_files; i++) {
@@ -212,37 +278,24 @@ void check(int success, char *test_name, char *error)
     }
 
     if (success) {
-        printf("ok %d - %s\n", test_run, test_name);
+        fprintf(stderr, "ok %d - %s\n", test_run, test_name);
         test_ok++;
     } else if (error) {
-        printf("nok %d - %s\n", test_run, test_name);
-        printf("# %s\n", error);
+        fprintf(stderr, "nok %d - %s\n", test_run, test_name);
+        fprintf(stderr, "# %s\n", error);
     } else {
-        printf("nok %d - %s\n", test_run, test_name);
-        printf("# no error message!\n");
+        fprintf(stderr, "nok %d - %s\n", test_run, test_name);
+        fprintf(stderr, "# no error message!\n");
     }
 }
 
 int display_check_statistics(void)
 {
-    printf("\ntests: %d, ok: %d, fail: %d\n", test_run, test_ok, test_run - test_ok);
+    fprintf(stderr,"\ntests: %d, ok: %d, fail: %d\n", test_run, test_ok, test_run - test_ok);
 
     return test_run - test_ok ;    
 }
 
-/*
-    Copyright (C) 2015 Modelon AB
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the BSD style license.
-
-     This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    BSD_License.txt file for more details.
-
-    You should have received a copy of the BSD_License.txt file
-    along with this program. If not, contact Modelon AB <http://www.modelon.com>.
-*/
 
 
