@@ -166,7 +166,6 @@ if(WIN32)
     include_directories(${CMAKE_CURRENT_BINARY_DIR}/openssl/include )
 endif()
 
-
 if(WIN32)
     set(tool_platform_c     ${CMAKE_CURRENT_LIST_DIR}/tool/mlle_spawn_windows.c)
 else()
@@ -208,165 +207,161 @@ target_link_libraries(randomize_key
                       ${extra_ssl_libs}
                       obfuscate_utils)
 
-# -------------------------------------------
-# Key length to use when generating RSA keys.
-# -------------------------------------------
-if(NOT DEFINED RSA_KEY_LENGTH)
-    set(RSA_KEY_LENGTH 4096)
-endif()
+					  
+# ---------------
+# ENCRYPTION KEYS
+# ---------------
 
-# -------------------------------------------------
-# Optional directory for the private/public keys.
-# -------------------------------------------------
-set(KEYS_SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/openssl_keys" CACHE STRING "Optional directory for the private/public keys.")
-set(LVE_KEYS_DIRECTORY "${KEYS_SOURCE_DIRECTORY}" CACHE STRING "Optional directory for the private/public LVE keys.")
-set(TOOL_KEYS_DIRECTORY "${KEYS_SOURCE_DIRECTORY}" CACHE STRING "Optional directory for the private/public Tool keys.")
+# TOOL private key for testing
+# ----------------------------
+set(PRIVATE_KEY_TOOL ${TOOL_PRIVATE_KEY_DIRECTORY}/private_key_tool.pem)
 
-# ------------------------------------------------------------
-# Directory to use if keys are missing from source directory.
-# ------------------------------------------------------------
-set(KEYS_BUILD_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/openssl_keys)
+if("${TOOL_PRIVATE_KEY_DIRECTORY}" STREQUAL "" OR NOT EXISTS "${PRIVATE_KEY_TOOL}")
 
-# --------------------------------------
-# Use Tool key from source or create a new one.
-# --------------------------------------
-set(PRIVATE_KEY_TOOL ${TOOL_KEYS_DIRECTORY}/private_key_tool.pem)
-if(EXISTS "${PRIVATE_KEY_TOOL}")
-    message("SSL key ${PRIVATE_KEY_TOOL} exists. Using it.")
-elseif(EXISTS "${KEYS_BUILD_DIRECTORY}/private_key_tool.pem")
-    set(PRIVATE_KEY_TOOL ${KEYS_BUILD_DIRECTORY}/private_key_tool.pem)
-    message("SSL key ${PRIVATE_KEY_TOOL} exist in build directory. Using it.")
+  message( FATAL_ERROR "\
+Error: TOOL private key doesn't exist '${PRIVATE_KEY_TOOL}'
+  variable TOOL_PRIVATE_KEY_DIRECTORY = ${TOOL_PRIVATE_KEY_DIRECTORY}
+    passed to CMake as -DTOOL_PRIVATE_KEY_DIRECTORY=private_keys_lve_path
+
+  the TOOL_PRIVATE_KEY_DIRECTORY directory must contains:
+  
+    - the private key for the test tool
+	    to generate a keys run the following commands:
+		
+          openssl genrsa -out \"private_key_tool_path/private_key_tool.pem\" 4096
+          dos2unix \"private_key_tool_path/private_key_tool.pem\"
+
+  the same set of keys (and random.h) must be used in all builds or the generated LVEs will not be compatible
+")
+
 else()
-    message("SSL key ${PRIVATE_KEY_TOOL} doesn't exist. A new key is created.")
-    file(MAKE_DIRECTORY "${KEYS_BUILD_DIRECTORY}")
-    set(PRIVATE_KEY_TOOL ${KEYS_BUILD_DIRECTORY}/private_key_tool.pem)
-    execute_process(COMMAND openssl genrsa -out ${PRIVATE_KEY_TOOL} ${RSA_KEY_LENGTH})
-endif()
 
-# Create header file for tool private key.
-set(PRIVATE_KEY_TOOL_H "${CMAKE_CURRENT_BINARY_DIR}/private_key_tool.h")
-add_custom_command(
+  # Create header file for TOOL private key.
+  set(PRIVATE_KEY_TOOL_H "${CMAKE_CURRENT_BINARY_DIR}/private_key_tool.h")
+  set(PRIVATE_KEY_TOOL_H_COMMAND obfuscate "${PRIVATE_KEY_TOOL_H}" "${PRIVATE_KEY_TOOL}" PRIVATE_KEY_TOOL TOOL_PRIVATE)
+  
+  add_custom_command(
     OUTPUT "${PRIVATE_KEY_TOOL_H}"
-    COMMAND "${CMAKE_COMMAND}" -E echo
-        Running: obfuscate "${PRIVATE_KEY_TOOL_H}" "${PRIVATE_KEY_TOOL}" PRIVATE_KEY_TOOL TOOL_PRIVATE
-    COMMAND obfuscate "${PRIVATE_KEY_TOOL_H}" "${PRIVATE_KEY_TOOL}" PRIVATE_KEY_TOOL TOOL_PRIVATE
+    COMMAND ${PRIVATE_KEY_TOOL_H_COMMAND}
     DEPENDS "${PRIVATE_KEY_TOOL}" obfuscate
+    COMMENT "Running: ${PRIVATE_KEY_TOOL_H_COMMAND}"
     )
-set_source_files_properties("${PRIVATE_KEY_TOOL_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
-
-# -------------------------------------
-# Use LVE key from source or create a new one.
-# -------------------------------------
-set(PRIVATE_KEY_LVE ${LVE_KEYS_DIRECTORY}/private_key_lve.pem)
-if(EXISTS "${PRIVATE_KEY_LVE}")
-    message("SSL key ${PRIVATE_KEY_LVE} exists. Using it.")
-elseif(EXISTS "${KEYS_BUILD_DIRECTORY}/private_key_lve.pem")
-    set(PRIVATE_KEY_LVE ${KEYS_BUILD_DIRECTORY}/private_key_lve.pem)
-    message("SSL key ${PRIVATE_KEY_LVE} exists in build directory. Using it.")
-else()
-    message("SSL key ${PRIVATE_KEY_LVE} doesn't exist. A new key is created.")
-    file(MAKE_DIRECTORY "${KEYS_BUILD_DIRECTORY}")
-    set(PRIVATE_KEY_LVE ${KEYS_BUILD_DIRECTORY}/private_key_lve.pem)
-    execute_process(COMMAND openssl genrsa -out ${PRIVATE_KEY_LVE} ${RSA_KEY_LENGTH})
+	
+  set_source_files_properties("${PRIVATE_KEY_TOOL_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
+  
 endif()
 
-# Create header file for library private key.
-set(PRIVATE_KEY_LVE_H "${CMAKE_CURRENT_BINARY_DIR}/private_key_lve.h")
-add_custom_command(
+
+# LVE private key
+# ---------------
+set(PRIVATE_KEY_LVE ${LVE_KEYS_DIRECTORY}/private_key_lve.pem)
+
+if( "${LVE_KEYS_DIRECTORY}" STREQUAL "" OR NOT EXISTS "${PRIVATE_KEY_LVE}")
+
+  message( FATAL_ERROR "\
+Error: LVE private key doesn't exist '${PRIVATE_KEY_LVE}'
+  variable LVE_KEYS_DIRECTORY = ${LVE_KEYS_DIRECTORY}
+    passed to CMake as -DLVE_KEYS_DIRECTORY=private_keys_lve_path
+
+  the LVE_KEYS_DIRECTORY directory must contains:
+  
+    - the private key for the generated LVE
+	    to generate a keys run the following commands:
+		
+          openssl genrsa -out \"private_key_lve_path/private_key_lve.pem\" 4096
+          dos2unix \"private_key_lve_path/private_key_lve.pem\"
+
+  the same set of keys (and random.h) must be used in all builds or the generated LVEs will not be compatible
+")
+
+else()
+
+  # Create header file for LVE private key.
+  set(PRIVATE_KEY_LVE_H "${CMAKE_CURRENT_BINARY_DIR}/private_key_lve.h")
+  set(PRIVATE_KEY_LVE_H_COMMAND obfuscate "${PRIVATE_KEY_LVE_H}" "${PRIVATE_KEY_LVE}" PRIVATE_KEY_LVE LVE_PRIVATE)
+
+  add_custom_command(
     OUTPUT "${PRIVATE_KEY_LVE_H}"
-    COMMAND "${CMAKE_COMMAND}" -E echo
-        Running: obfuscate "${PRIVATE_KEY_LVE_H}" "${PRIVATE_KEY_LVE}" PRIVATE_KEY_LVE LVE_PRIVATE
-    COMMAND obfuscate "${PRIVATE_KEY_LVE_H}" "${PRIVATE_KEY_LVE}" PRIVATE_KEY_LVE LVE_PRIVATE
+    COMMAND ${PRIVATE_KEY_LVE_H_COMMAND}
     DEPENDS "${PRIVATE_KEY_LVE}" obfuscate
+    COMMENT "Running: ${PRIVATE_KEY_LVE_H_COMMAND}"
     )
-set_source_files_properties("${PRIVATE_KEY_LVE_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
+	
+  set_source_files_properties("${PRIVATE_KEY_LVE_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
 
-# ---------------------------------------------
-# Generate header files for public tool(s) keys authorized with this lve.
-# ---------------------------------------------
-message(STATUS "Adding rule for PUBLIC_KEY_TOOL_H=${CMAKE_CURRENT_BINARY_DIR}/public_key_tool.h")
-set(PUBLIC_KEY_TOOL_H "${CMAKE_CURRENT_BINARY_DIR}/public_key_tool.h")
-set(PUBLIC_KEY_TOOL_ALL_H "${PUBLIC_KEY_TOOL_H}" )
+endif()
 
-# Check if there is a list file with several public keys
-set(PUBLIC_KEY_TOOL_LIST ${TOOL_KEYS_DIRECTORY}/public_key_tools.txt)
-if(EXISTS "${PUBLIC_KEY_TOOL_LIST}")
+
+
+
+# TOOLS public keys recognized by LVE
+# -----------------------------------
+set(PUBLIC_KEY_TOOL_LIST ${TOOLS_PUBLIC_KEYS_DIRECTORY}/public_key_tools.txt)
+
+if("${TOOLS_PUBLIC_KEYS_DIRECTORY}" STREQUAL "" OR NOT EXISTS "${PUBLIC_KEY_TOOL_LIST}")
+
+  message( FATAL_ERROR "\
+Error: ${PUBLIC_KEY_TOOL_LIST} doesn't exist.
+  variable TOOLS_PUBLIC_KEYS_DIRECTORY = ${TOOLS_PUBLIC_KEYS_DIRECTORY}
+    passed to CMake as -DTOOLS_PUBLIC_KEYS_DIRECTORY=public_keys_path
+
+  the TOOLS_PUBLIC_KEYS_DIRECTORY directory must contains:
+  
+    - the public keys for each of the tools supported by the generated LVE
+	    to generate a set of keys run the following commands:
+		
+          openssl genrsa -out \"private_key_path/private_key_tool.pem\" 4096
+          openssl rsa -pubout -in \"private_key_path/private_key_tool.pem\" -out \"public_keys_path/public_key_tool.pem\"
+          dos2unix \"public_keys_path/public_key_tool.pem\"
+
+	- the file 'public_key_tools.txt' which containst a list of the public keys to use
+	    one public key file per line
+ 
+  the same set of keys (and random.h) must be used in all builds or the generated LVEs will not be compatible
+")
+
+else()
+
+  # Generate header files for tool authorized with this lve.
   file(STRINGS "${PUBLIC_KEY_TOOL_LIST}" PUBLIC_KEY_TOOL_FILES)
   list(LENGTH PUBLIC_KEY_TOOL_FILES PUBLIC_KEY_TOOL_NUM)
-  message(STATUS "Found public_key_tools.txt found. Generating for ${PUBLIC_KEY_TOOL_NUM} tools.")
+  
+  if(NOT PUBLIC_KEY_TOOL_NUM)
+    message( FATAL_ERROR "Error: no tool public keys in ${PUBLIC_KEY_TOOL_LIST}")  
+  endif()
+  
   set(TOOLI 0)
   foreach(KEYFILE ${PUBLIC_KEY_TOOL_FILES})
-    message(STATUS "TOOLI=${TOOLI} KEYFILE=${KEYFILE}")
     set(PUBLIC_KEY_TOOLI_H "${CMAKE_CURRENT_BINARY_DIR}/public_key_tool${TOOLI}.h")
-    message(STATUS "Adding rule for ${PUBLIC_KEY_TOOLI_H}")
-    
+	set(PUBLIC_KEY_TOOLI_H_COMMAND obfuscate "${PUBLIC_KEY_TOOLI_H}" "${TOOLS_PUBLIC_KEYS_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC)
+	
+    list(APPEND PUBLIC_KEY_TOOL_H_FILES "${PUBLIC_KEY_TOOLI_H}")
+	
+    message(STATUS "Adding rule for TOOLI=${TOOLI} KEYFILE=${KEYFILE}")
     add_custom_command(
         OUTPUT "${PUBLIC_KEY_TOOLI_H}"
-        COMMAND "${CMAKE_COMMAND}" -E echo
-            Running: obfuscate "${PUBLIC_KEY_TOOLI_H}" "${TOOL_KEYS_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC
-        COMMAND obfuscate "${PUBLIC_KEY_TOOLI_H}" "${TOOL_KEYS_DIRECTORY}/${KEYFILE}" PUBLIC_KEY_TOOL${TOOLI} TOOL_PUBLIC
-        DEPENDS "${TOOL_KEYS_DIRECTORY}/${KEYFILE}" obfuscate
+        COMMAND ${PUBLIC_KEY_TOOLI_H_COMMAND}
+        DEPENDS "${TOOLS_PUBLIC_KEYS_DIRECTORY}/${KEYFILE}" obfuscate
+        COMMENT "Running: ${PUBLIC_KEY_TOOLI_H_COMMAND}"
     )
     set_source_files_properties("${PUBLIC_KEY_TOOLI_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
-    
-    list(APPEND PUBLIC_KEY_TOOL_ALL_H ${PUBLIC_KEY_TOOLI_H})
-    
     math(EXPR TOOLI ${TOOLI}+1)
   endforeach()
-else()
-  message(STATUS "No public_key_tools.txt found. Single tool will be supported.")
-  set(PUBLIC_KEY_TOOL_NUM 1)
 
-# ---------------------------------------------
-# Use public Tool key from source or extract from private.
-# ---------------------------------------------
-  set(PUBLIC_KEY_TOOL0 ${TOOL_KEYS_DIRECTORY}/public_key_tool.pem)
-  if(EXISTS "${PUBLIC_KEY_TOOL0}")
-     message("SSL key ${PUBLIC_KEY_TOOL0} exists. Using it.")
-  elseif(EXISTS "${KEYS_BUILD_DIRECTORY}/public_key_tool.pem")
-     set(PUBLIC_KEY_TOOL0 ${KEYS_BUILD_DIRECTORY}/public_key_tool.pem)
-     message("SSL key ${PUBLIC_KEY_TOOL0} exists. Using it.")
-  else()
-      message("SSL key ${PUBLIC_KEY_TOOL0} doesn't exist. Public key is extracted from ${PRIVATE_KEY_TOOL}.")
-      file(MAKE_DIRECTORY "${KEYS_BUILD_DIRECTORY}")
-      set(PUBLIC_KEY_TOOL0 ${KEYS_BUILD_DIRECTORY}/public_key_tool.pem)
-      execute_process(COMMAND openssl rsa -pubout -in "${PRIVATE_KEY_TOOL}" -out "${PUBLIC_KEY_TOOL0}")
-  endif()
-
-  set(PUBLIC_KEY_TOOL0_H "${CMAKE_CURRENT_BINARY_DIR}/public_key_tool0.h")
-  message(STATUS "Adding rule for PUBLIC_KEY_TOOL0_H")
+  set(PUBLIC_KEY_TOOL_H "${CMAKE_CURRENT_BINARY_DIR}/public_key_tool.h")
+  message(STATUS "Adding rule for ${PUBLIC_KEY_TOOL_H}")
+  
   add_custom_command(
-    OUTPUT "${PUBLIC_KEY_TOOL0_H}"
-    COMMAND "${CMAKE_COMMAND}" -E echo
-        Running: obfuscate "${PUBLIC_KEY_TOOL0_H}" "${PUBLIC_KEY_TOOL0}" PUBLIC_KEY_TOOL0 TOOL_PUBLIC
-    COMMAND obfuscate "${PUBLIC_KEY_TOOL0_H}" "${PUBLIC_KEY_TOOL0}" PUBLIC_KEY_TOOL0 TOOL_PUBLIC
-    DEPENDS "${PUBLIC_KEY_TOOL0}" obfuscate
-    )
-  set_source_files_properties("${PUBLIC_KEY_TOOL0_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
-
-  list(APPEND PUBLIC_KEY_TOOL_ALL_H "${PUBLIC_KEY_TOOL0_H}")
-
-endif()
-
-message(STATUS PUBLIC_KEY_TOOL_ALL_H=${PUBLIC_KEY_TOOL_ALL_H})
-add_custom_command(
     OUTPUT "${PUBLIC_KEY_TOOL_H}"
     COMMAND "${CMAKE_COMMAND}" 
         -D PUBLIC_KEY_TOOL_NUM=${PUBLIC_KEY_TOOL_NUM} 
         -D PUBLIC_KEY_TOOL_H="${PUBLIC_KEY_TOOL_H}" 
         -P "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake"
-    DEPENDS obfuscate "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake" "${TOOL_KEYS_DIRECTORY}/public_key_tools.txt"
+    DEPENDS obfuscate "${CMAKE_CURRENT_LIST_DIR}/GenPublicKeyToolH.cmake" "${PUBLIC_KEY_TOOL_LIST}" ${PUBLIC_KEY_TOOL_H_FILES}
     )
-set_source_files_properties("${PUBLIC_KEY_TOOL_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
+  set_source_files_properties("${PUBLIC_KEY_TOOL_H}" PROPERTIES HEADER_FILE_ONLY TRUE)
 
-#add_library(error
-    #${CMAKE_CURRENT_LIST_DIR}/common/mlle_error.c
-#)
-
-# Dummy output which is never actually produced. Anything that depends on
-# this will always be rebuilt.
-add_custom_target(always_rebuild)
-
+endif()
 
 # Modules
 set(MLLE_LIST_DIR "${CMAKE_CURRENT_LIST_DIR}")
@@ -407,7 +402,7 @@ add_dependencies(mlle_common  openssl)
 # --------------
 add_executable(${LVETARGET}
     ${PRIVATE_KEY_LVE_H}
-    ${PUBLIC_KEY_TOOL_ALL_H}
+    ${PUBLIC_KEY_TOOL_H}
     ${CMAKE_CURRENT_LIST_DIR}/lve/lve.c
 
     ${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/uthash/uthash.h
@@ -449,7 +444,7 @@ add_library(tool
 )
 
 add_executable(test_tool
-    ${PUBLIC_KEY_TOOL_ALL_H}
+    ${PUBLIC_KEY_TOOL_H}
     ${CMAKE_CURRENT_LIST_DIR}/tests/test_tool.c
 )
 
@@ -631,7 +626,7 @@ add_custom_command(
 
 
 # --------------------
-# TESTING
+# TEST
 # --------------------
 
 ENABLE_TESTING()
@@ -709,7 +704,7 @@ endif()
 # INSTALL
 # --------------------
 # TODO: Install does not work as intended - needs work or maybe it should just be removed?
-install(TARGETS test_tool encrypt_file packagetool
+install(TARGETS test_tool encrypt_file packagetool decrypt_file
         DESTINATION bin
         ARCHIVE DESTINATION lib)
 
@@ -721,9 +716,6 @@ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
 
 install(DIRECTORY "${openssl_dir}/include/"
         DESTINATION include)
-
-# install(FILES mlle_licensing.h
-        # DESTINATION include)
 
 # Install OpenSSL libs as well, since they are needed by tool lib
 if (USE_CONAN_OPENSSL)
