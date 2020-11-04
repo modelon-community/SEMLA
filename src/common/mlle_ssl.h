@@ -32,7 +32,7 @@ struct mlle_error;
 
 // Storage of the public key for the Tool
 // which we receive in the LVE callback method.
-char *global_tool_pub_key;
+extern char *global_tool_pub_key;
 
 /*****************************
  * Initiate the SSL library.
