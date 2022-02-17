@@ -224,7 +224,7 @@ Error: TOOL private key doesn't exist '${PRIVATE_KEY_TOOL}'
   variable TOOL_PRIVATE_KEY_DIRECTORY = ${TOOL_PRIVATE_KEY_DIRECTORY}
     passed to CMake as -DTOOL_PRIVATE_KEY_DIRECTORY=private_key_tool_path
 
-  the TOOL_PRIVATE_KEY_DIRECTORY directory must contains:
+  the TOOL_PRIVATE_KEY_DIRECTORY directory must contain:
   
     - the private key for the test tool
 	    to generate a keys run the following commands:
@@ -264,7 +264,7 @@ Error: LVE private key doesn't exist '${PRIVATE_KEY_LVE}'
   variable LVE_KEYS_DIRECTORY = ${LVE_KEYS_DIRECTORY}
     passed to CMake as -DLVE_KEYS_DIRECTORY=private_key_lve_path
 
-  the LVE_KEYS_DIRECTORY directory must contains:
+  the LVE_KEYS_DIRECTORY directory must contain:
   
     - the private key for the generated LVE
 	    to generate a keys run the following commands:
@@ -306,7 +306,7 @@ Error: ${PUBLIC_KEY_TOOL_LIST} doesn't exist.
   variable TOOLS_PUBLIC_KEYS_DIRECTORY = ${TOOLS_PUBLIC_KEYS_DIRECTORY}
     passed to CMake as -DTOOLS_PUBLIC_KEYS_DIRECTORY=public_keys_path
 
-  the TOOLS_PUBLIC_KEYS_DIRECTORY directory must contains:
+  the TOOLS_PUBLIC_KEYS_DIRECTORY directory must contain:
   
     - the public keys for each of the tools supported by the generated LVE
 	    to generate a set of keys run the following commands:
