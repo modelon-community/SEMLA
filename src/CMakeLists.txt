@@ -222,7 +222,7 @@ if("${TOOL_PRIVATE_KEY_DIRECTORY}" STREQUAL "" OR NOT EXISTS "${PRIVATE_KEY_TOOL
   message( FATAL_ERROR "\
 Error: TOOL private key doesn't exist '${PRIVATE_KEY_TOOL}'
   variable TOOL_PRIVATE_KEY_DIRECTORY = ${TOOL_PRIVATE_KEY_DIRECTORY}
-    passed to CMake as -DTOOL_PRIVATE_KEY_DIRECTORY=private_keys_lve_path
+    passed to CMake as -DTOOL_PRIVATE_KEY_DIRECTORY=private_key_tool_path
 
   the TOOL_PRIVATE_KEY_DIRECTORY directory must contains:
   
@@ -262,7 +262,7 @@ if( "${LVE_KEYS_DIRECTORY}" STREQUAL "" OR NOT EXISTS "${PRIVATE_KEY_LVE}")
   message( FATAL_ERROR "\
 Error: LVE private key doesn't exist '${PRIVATE_KEY_LVE}'
   variable LVE_KEYS_DIRECTORY = ${LVE_KEYS_DIRECTORY}
-    passed to CMake as -DLVE_KEYS_DIRECTORY=private_keys_lve_path
+    passed to CMake as -DLVE_KEYS_DIRECTORY=private_key_lve_path
 
   the LVE_KEYS_DIRECTORY directory must contains:
   
@@ -311,9 +311,9 @@ Error: ${PUBLIC_KEY_TOOL_LIST} doesn't exist.
     - the public keys for each of the tools supported by the generated LVE
 	    to generate a set of keys run the following commands:
 		
-          openssl genrsa -out \"private_key_path/private_key_tool.pem\" 4096
-          openssl rsa -pubout -in \"private_key_path/private_key_tool.pem\" -out \"public_keys_path/public_key_tool.pem\"
-          dos2unix \"public_keys_path/public_key_tool.pem\"
+          openssl genrsa -out \"private_key_tool_path/private_key_tool.pem\" 4096
+          openssl rsa -pubout -in \"private_key_tool_path/private_key_tool.pem\" -out \"public_keys_path/public_key_tools.txt\"
+          dos2unix \"public_keys_path/public_key_tools.txt\"
 
 	- the file 'public_key_tools.txt' which containst a list of the public keys to use
 	    one public key file per line
