@@ -107,29 +107,29 @@ endif()
   
 
 add_library(tool
-    ../mlle_licensing.c 
-    ../mlle_protocol.c 
-    ../mlle_error.c 
-    ../mlle_io.c 
-    ../mlle_parse_command.c
-    ../mlle_utils.c
-    ../mlle_ssl.c    
+    ../tool/mlle_licensing.c 
+    ../common/mlle_protocol.c 
+    ../common/mlle_error.c 
+    ../common/mlle_io.c 
+    ../common/mlle_parse_command.c
+    ../common/mlle_utils.c
+    ../common/mlle_ssl.c    
     ${CMAKE_CURRENT_BINARY_DIR}/private_key_tool.c
 )
 
 add_library(lve
-    ../lve.c 
-    ../mlle_lve.c 
-    ../mlle_protocol.c 
-    ../mlle_protocol_lve_state.c 
-    ../mlle_error.c 
-    ../mlle_io.c 
-    ../mlle_parse_command.c 
-    ../mlle_lve_tools.c 
-    ../mlle_lve_libpath.c 
-    ../mlle_lve_pubkey.c 
-    ../mlle_lve_license.c 
-    ../mlle_lve_feature.c 
+    ../lve/lve.c 
+    ../lve/mlle_lve.c 
+    ../common/mlle_protocol.c 
+    ../lve/mlle_protocol_lve_state.c 
+    ../common/mlle_error.c 
+    ../common/mlle_io.c 
+    ../common/mlle_parse_command.c 
+    ../lve/mlle_lve_tools.c 
+    ../lve/mlle_lve_libpath.c 
+    ../lve/mlle_lve_pubkey.c 
+    ../lve/mlle_lve_license.c 
+    ../lve/mlle_lve_feature.c 
     ${CMAKE_CURRENT_BINARY_DIR}/public_key_tool.c
     ${CMAKE_CURRENT_BINARY_DIR}/private_key_lve.c    
 )
