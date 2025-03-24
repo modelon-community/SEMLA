@@ -11,12 +11,12 @@
     BSD_License.txt file for more details.
 
     You should have received a copy of the BSD_License.txt file
-    along with this program. If not, contact Modelon AB <http://www.modelon.com>.
+    along with this program. If not, contact Modelon AB
+   <http://www.modelon.com>.
 */
 
 #ifndef MLLE_IO_H_
 #define MLLE_IO_H_
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,9 +25,10 @@ extern "C" {
 #define _XOPEN_SOURCE 700
 #include <stddef.h>
 #include <stdio.h>
-#include "mlle_protocol.h"
+
 #include "mlle_error.h"
 #include "mlle_lve.h"
+#include "mlle_protocol.h"
 
 #define LE_NO_ERROR (0)
 #define LE_EOF (-1)
@@ -38,52 +39,37 @@ extern "C" {
 #define NUMBER_MAX_LEN 20
 #define SIMPLE_FORM_BUFFER_SIZE 20
 #define NUMBER_FORM_BUFFER_SIZE (SIMPLE_FORM_BUFFER_SIZE + 1 + NUMBER_MAX_LEN)
-#define NUMBER_AND_LENGTH_FORM_BUFFER_SIZE (NUMBER_FORM_BUFFER_SIZE + 1 + NUMBER_MAX_LEN)
+#define NUMBER_AND_LENGTH_FORM_BUFFER_SIZE                                     \
+    (NUMBER_FORM_BUFFER_SIZE + 1 + NUMBER_MAX_LEN)
 #define MESSAGE_ERROR_BUFFER_SIZE 100
 
-
 /* code is expected to write out debug messages if mlle_log is not NULL */
-extern FILE* mlle_log;
+extern FILE *mlle_log;
 
-/* Open mlle_log if specified environment variable is defined and points to a filename */
-void mlle_log_open(const char* envvar);
+/* Open mlle_log if specified environment variable is defined and points to a
+ * filename */
+void mlle_log_open(const char *envvar);
 
-char *
-mlle_io_read_file(const char *file_path,
-                  size_t *file_size,
-                  struct mlle_error **error);
+char *mlle_io_read_file(const char *file_path, size_t *file_size,
+                        struct mlle_error **error);
 
-void
-mlle_send_simple_form(SSL *ssl,
-                      enum mlle_protocol_command_id command_id);
+void mlle_send_simple_form(SSL *ssl, enum mlle_protocol_command_id command_id);
 
-int
-mlle_send_number_form(SSL *ssl,
-                      enum mlle_protocol_command_id command_id,
-                      long number);
+int mlle_send_number_form(SSL *ssl, enum mlle_protocol_command_id command_id,
+                          long number);
 
-void
-mlle_send_length_form(SSL *ssl,
-                      enum mlle_protocol_command_id command_id,
-                      size_t length,
-                      const char *data);
+void mlle_send_length_form(SSL *ssl, enum mlle_protocol_command_id command_id,
+                           size_t length, const char *data);
 
-void
-mlle_send_string(SSL *ssl,
-                 enum mlle_protocol_command_id command,
-                 const char* string);
+void mlle_send_string(SSL *ssl, enum mlle_protocol_command_id command,
+                      const char *string);
 
-void
-mlle_send_number_and_length_form(SSL *ssl,
-                                 enum mlle_protocol_command_id command_id,
-                                 long number,
-                                 size_t length,
-                                 const char *data);
+void mlle_send_number_and_length_form(SSL *ssl,
+                                      enum mlle_protocol_command_id command_id,
+                                      long number, size_t length,
+                                      const char *data);
 
-void
-mlle_send_error(SSL *ssl,
-                long error_code,
-                const char *error_msg);
+void mlle_send_error(SSL *ssl, long error_code, const char *error_msg);
 
 /*
 void mlle_send_notsimple();
