@@ -43,6 +43,12 @@ extern "C" {
     (NUMBER_FORM_BUFFER_SIZE + 1 + NUMBER_MAX_LEN)
 #define MESSAGE_ERROR_BUFFER_SIZE 100
 
+#ifdef _WIN32
+#define MLLE_SIZE_T_FMT "%Iu"
+#else
+#define MLLE_SIZE_T_FMT "%zu"
+#endif
+
 /* code is expected to write out debug messages if mlle_log is not NULL */
 extern FILE *mlle_log;
 

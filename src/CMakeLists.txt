@@ -20,7 +20,8 @@
 # -------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.20)
-project(MLLE)
+project(SEMLA
+        VERSION 0.0.0)
 include(GNUInstallDirs)
 
 # set platform
@@ -307,6 +308,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/obfuscators ${CMAKE_CURRENT_BINARY_DI
 # Create common library.
 # --------------
 add_library(mlle_common
+    ${CMAKE_CURRENT_LIST_DIR}/common/asprintf.c
     ${CMAKE_CURRENT_LIST_DIR}/common/mlle_error.c
     ${CMAKE_CURRENT_LIST_DIR}/common/mlle_io.c
     ${CMAKE_CURRENT_LIST_DIR}/common/mlle_parse_command.c
@@ -342,6 +344,27 @@ add_executable(${LVETARGET}
     ${CMAKE_CURRENT_LIST_DIR}/lve/mlle_lve_tools.c
     ${CMAKE_CURRENT_LIST_DIR}/lve/mlle_ssl_lve.c
 )
+# input for the --version option
+target_compile_definitions(
+    ${LVETARGET}
+    PRIVATE
+        PROJECT_NAME=${PROJECT_NAME}
+        PROJECT_VERSION=${PROJECT_VERSION}
+)
+# list of tools authorized with this lve.
+set(TOOLS_LIST_FILE "${TOOLS_PUBLIC_KEYS_DIRECTORY}/tools.txt")
+if (EXISTS "${TOOLS_LIST_FILE}")
+    file(STRINGS "${TOOLS_LIST_FILE}" TOOLS_LIST)
+    string(REGEX REPLACE ";" "\\\\\", \\\\\"" TOOLS_LIST_JSON_STRING "\"[\\\"${TOOLS_LIST}\\\"]\"")
+    target_compile_definitions(
+        ${LVETARGET}
+        PRIVATE
+            TOOLS_LIST_JSON_STRING=${TOOLS_LIST_JSON_STRING}
+    )
+endif()
+
+# input for the --help option
+target_compile_definitions(${LVETARGET} PRIVATE LVETARGET=${LVETARGET})
 
 target_link_libraries(${LVETARGET} license_manager decryptor mlle_common)
 if (USE_CUSTOM_OPENSSL_SUBDIRECTORY)
