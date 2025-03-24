@@ -36,9 +36,6 @@
 
 #ifdef _WIN32
 #define stat _stat
-#define SIZE_T_FMT "%Iu"
-#else
-#define SIZE_T_FMT "%zu"
 #endif
 
 FILE *mlle_log = 0;
@@ -226,7 +223,7 @@ void mlle_send_length_form(SSL *ssl, enum mlle_protocol_command_id command_id,
     }
 
     // Add command and length to array.
-    print_result = snprintf(output, output_length, "%s " SIZE_T_FMT "\n",
+    print_result = snprintf(output, output_length, "%s " MLLE_SIZE_T_FMT "\n",
                             mlle_command_info[command_id].name, length);
 
     if (print_result >= 0) {
@@ -268,8 +265,9 @@ void mlle_send_number_and_length_form(SSL *ssl,
     }
 
     // Add command, number and length to array.
-    print_result = snprintf(output, output_length, "%s %ld " SIZE_T_FMT "\n",
-                            mlle_command_info[command_id].name, number, length);
+    print_result =
+        snprintf(output, output_length, "%s %ld " MLLE_SIZE_T_FMT "\n",
+                 mlle_command_info[command_id].name, number, length);
 
     if (print_result >= 0) {
         // Add data to array.
