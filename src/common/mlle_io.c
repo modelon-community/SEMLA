@@ -11,26 +11,27 @@
     BSD_License.txt file for more details.
 
     You should have received a copy of the BSD_License.txt file
-    along with this program. If not, contact Modelon AB <http://www.modelon.com>.
+    along with this program. If not, contact Modelon AB
+   <http://www.modelon.com>.
 */
 
 #define _XOPEN_SOURCE 700
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <errno.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 /* libcrypto-compat.h must be first */
 #include "libcrypto-compat.h"
 
-#include "mlle_protocol.h"
 #include "mlle_error.h"
 #include "mlle_io.h"
+#include "mlle_protocol.h"
 #include "mlle_ssl.h"
 
 #ifdef _WIN32
@@ -40,10 +41,11 @@
 #define SIZE_T_FMT "%zu"
 #endif
 
-FILE* mlle_log = 0;
+FILE *mlle_log = 0;
 
-void mlle_log_open(const char* envvar) {
-    const char* fname = getenv(envvar);
+void mlle_log_open(const char *envvar)
+{
+    const char *fname = getenv(envvar);
     if (NULL == fname) {
         return;
     }
@@ -56,21 +58,19 @@ void mlle_log_open(const char* envvar) {
     }
 }
 
-char *
-mlle_io_read_file(const char *file_path,
-                  size_t *file_size,
-                  struct mlle_error **error)
+char *mlle_io_read_file(const char *file_path, size_t *file_size,
+                        struct mlle_error **error)
 {
     FILE *file = NULL;
-    struct stat stat_info = { 0 };
+    struct stat stat_info = {0};
     int status = 0;
     size_t size = 0;
     char *file_buffer = NULL;
     size_t bytes_read = 0;
-    
+
 #ifdef _WIN32
-    #define MAX_FILEPATH_LENGTH_SUPPORTED 4096
-    char long_file_path[MAX_FILEPATH_LENGTH_SUPPORTED+1];
+#define MAX_FILEPATH_LENGTH_SUPPORTED 4096
+    char long_file_path[MAX_FILEPATH_LENGTH_SUPPORTED + 1];
     /* On Windows we make extra checks if this is a long path issue */
     size_t file_name_length = strlen(file_path);
 
@@ -81,42 +81,48 @@ mlle_io_read_file(const char *file_path,
     if (file == NULL) {
 #ifdef _WIN32
         if (file_name_length > MAX_FILEPATH_LENGTH_SUPPORTED - 4) {
-            mlle_error_set(error, 1, 1, "File name length is too long for %s. Cannot open file.", file_path);
+            mlle_error_set(
+                error, 1, 1,
+                "File name length is too long for %s. Cannot open file.",
+                file_path);
             return NULL;
         }
 
-        if ((file_name_length > 255) && strncmp("\\\\?\\", file_path, 4)
-            ) {
+        if ((file_name_length > 255) && strncmp("\\\\?\\", file_path, 4)) {
             /* try to use \\?\ prefix for the long path */
             strncpy(long_file_path, "\\\\?\\", 5);
-            strncpy(long_file_path+4, file_path, sizeof(long_file_path)-4);
-        }
-        else {
+            strncpy(long_file_path + 4, file_path, sizeof(long_file_path) - 4);
+        } else {
             strncpy(long_file_path, file_path, sizeof(long_file_path));
         }
-    
+
         {
-            char* ch = long_file_path;
+            char *ch = long_file_path;
             while (*ch) {
-                if (*ch == '/') *ch = '\\';
+                if (*ch == '/')
+                    *ch = '\\';
                 ch++;
             }
         }
         file = fopen(long_file_path, "rb");
-        if (file == NULL) {            
+        if (file == NULL) {
             if (file_name_length > 255) {
-                mlle_error_set(error, 1, 1, "Cannot handle long file name for file %s.", file_path);
-            }
-            else {
-                mlle_error_set(error, 1, 1, "Couldn't open file %s. The error message was: %s",
+                mlle_error_set(error, 1, 1,
+                               "Cannot handle long file name for file %s.",
+                               file_path);
+            } else {
+                mlle_error_set(
+                    error, 1, 1,
+                    "Couldn't open file %s. The error message was: %s",
                     file_path, strerror(errno));
             }
             return NULL;
         }
         file_path = long_file_path;
-#else        
-        mlle_error_set(error, 1, 1, "Couldn't open file %s. The error message was: %s",
-            file_path, strerror(errno));
+#else
+        mlle_error_set(error, 1, 1,
+                       "Couldn't open file %s. The error message was: %s",
+                       file_path, strerror(errno));
         return NULL;
 #endif
     }
@@ -135,16 +141,18 @@ mlle_io_read_file(const char *file_path,
 #endif
 
     if (status == -1) {
-        mlle_error_set(error, 1, 1,
-                "Couldn't find file size for %s. The error message was: %s",
-                file_path, strerror(errno));
+        mlle_error_set(
+            error, 1, 1,
+            "Couldn't find file size for %s. The error message was: %s",
+            file_path, strerror(errno));
         return NULL;
     }
     size = stat_info.st_size;
     /* Allocate buffer. */
     file_buffer = calloc(size + 1, 1);
     if (file_buffer == NULL) {
-        mlle_error_set(error, 1, 1, "Couldn't allocate memory to read file: %s", file_path);
+        mlle_error_set(error, 1, 1, "Couldn't allocate memory to read file: %s",
+                       file_path);
         return NULL;
     }
 
@@ -152,9 +160,10 @@ mlle_io_read_file(const char *file_path,
     bytes_read = fread(file_buffer, 1, size, file);
     file_buffer[bytes_read] = '\0';
     if (bytes_read < size && ferror(file)) {
-        mlle_error_set(error, 1, 1,
-                "I/O error while reading file %s. The error message was: %s",
-                file_path, strerror(errno));
+        mlle_error_set(
+            error, 1, 1,
+            "I/O error while reading file %s. The error message was: %s",
+            file_path, strerror(errno));
         free(file_buffer);
         file_buffer = NULL;
     }
@@ -164,21 +173,19 @@ mlle_io_read_file(const char *file_path,
     return file_buffer;
 }
 
-
 /***************************************
  * Send message of form "<COMMAND>LN".
  ***************************************/
-void mlle_send_simple_form(SSL *ssl,
-        enum mlle_protocol_command_id command_id)
+void mlle_send_simple_form(SSL *ssl, enum mlle_protocol_command_id command_id)
 {
     int result = 0;
     char output[SIMPLE_FORM_BUFFER_SIZE] = {0};
 
     // Add command to array.
-    result = snprintf(output, SIMPLE_FORM_BUFFER_SIZE, "%s\n", mlle_command_info[command_id].name);
+    result = snprintf(output, SIMPLE_FORM_BUFFER_SIZE, "%s\n",
+                      mlle_command_info[command_id].name);
 
-    if (result >= 0)
-    {
+    if (result >= 0) {
         ssl_write_message(ssl, output, strlen(output));
     }
 }
@@ -186,28 +193,25 @@ void mlle_send_simple_form(SSL *ssl,
 /*************************************************
  * Send message of form "<COMMAND> <NUMBER>LN".
  ************************************************/
-int mlle_send_number_form(SSL *ssl,
-                      enum mlle_protocol_command_id command_id,
-                      long number)
+int mlle_send_number_form(SSL *ssl, enum mlle_protocol_command_id command_id,
+                          long number)
 {
     int result = 0;
     char output[NUMBER_FORM_BUFFER_SIZE] = {0};
 
     // Add command and number to array.
-    result = snprintf(output, NUMBER_FORM_BUFFER_SIZE, "%s %ld\n", mlle_command_info[command_id].name, number);
+    result = snprintf(output, NUMBER_FORM_BUFFER_SIZE, "%s %ld\n",
+                      mlle_command_info[command_id].name, number);
 
-    if (result >= 0)
-    {
+    if (result >= 0) {
         result = ssl_write_message(ssl, output, strlen(output));
     }
     return result;
 }
 
-void
-mlle_send_length_form(SSL *ssl,
-                      enum mlle_protocol_command_id command_id,
-                      size_t length,  // Length of data.
-                      const char *data)
+void mlle_send_length_form(SSL *ssl, enum mlle_protocol_command_id command_id,
+                           size_t length, // Length of data.
+                           const char *data)
 {
     int print_result = 0;
     size_t message_length = 0;
@@ -217,20 +221,15 @@ mlle_send_length_form(SSL *ssl,
     // The buffer contains command, length of data and the data.
     output_length = NUMBER_FORM_BUFFER_SIZE + length + 1;
     output = malloc(output_length);
-    if (output == NULL)
-    {
+    if (output == NULL) {
         return;
     }
 
     // Add command and length to array.
-    print_result = snprintf(output, 
-                            output_length, 
-                            "%s "SIZE_T_FMT"\n", 
-                            mlle_command_info[command_id].name, 
-                            length);
+    print_result = snprintf(output, output_length, "%s " SIZE_T_FMT "\n",
+                            mlle_command_info[command_id].name, length);
 
-    if (print_result >= 0)
-    {
+    if (print_result >= 0) {
         // Add data to array.
         memcpy(output + print_result, data, length);
         message_length = length + print_result;
@@ -243,22 +242,18 @@ mlle_send_length_form(SSL *ssl,
     free(output);
 }
 
-void
-mlle_send_string(SSL *ssl,
-                 enum mlle_protocol_command_id command_id,
-                 const char* string)
+void mlle_send_string(SSL *ssl, enum mlle_protocol_command_id command_id,
+                      const char *string)
 {
     size_t length = strlen(string);
 
     mlle_send_length_form(ssl, command_id, length, string);
 }
 
-void
-mlle_send_number_and_length_form(SSL *ssl,
-                                 enum mlle_protocol_command_id command_id,
-                                 long number,
-                                 size_t length,
-                                 const char *data)
+void mlle_send_number_and_length_form(SSL *ssl,
+                                      enum mlle_protocol_command_id command_id,
+                                      long number, size_t length,
+                                      const char *data)
 {
     int print_result = 0;
     size_t message_length = 0;
@@ -268,21 +263,15 @@ mlle_send_number_and_length_form(SSL *ssl,
     // The buffer contains command, length of data and the data.
     output_length = NUMBER_AND_LENGTH_FORM_BUFFER_SIZE + length + 1;
     output = malloc(output_length);
-    if (output == NULL)
-    {
+    if (output == NULL) {
         return;
     }
 
     // Add command, number and length to array.
-    print_result = snprintf(output, 
-                            output_length, 
-                            "%s %ld "SIZE_T_FMT"\n", 
-                            mlle_command_info[command_id].name, 
-                            number, 
-                            length);
+    print_result = snprintf(output, output_length, "%s %ld " SIZE_T_FMT "\n",
+                            mlle_command_info[command_id].name, number, length);
 
-    if (print_result >= 0)
-    {
+    if (print_result >= 0) {
         // Add data to array.
         memcpy(output + print_result, data, length);
         message_length = length + print_result;
@@ -295,19 +284,14 @@ mlle_send_number_and_length_form(SSL *ssl,
     free(output);
 }
 
-void
-mlle_send_error(SSL *ssl,
-                long error_code,
-                const char *error_msg)
+void mlle_send_error(SSL *ssl, long error_code, const char *error_msg)
 {
     size_t length = strlen(error_msg);
     if (error_msg != NULL) {
         mlle_send_number_and_length_form(ssl, MLLE_PROTOCOL_ERROR_CMD,
-                error_code, length, error_msg);
+                                         error_code, length, error_msg);
     } else {
         mlle_send_number_and_length_form(ssl, MLLE_PROTOCOL_ERROR_CMD,
-                error_code, 0, "");
+                                         error_code, 0, "");
     }
 }
-
-
