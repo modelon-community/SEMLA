@@ -174,7 +174,7 @@ char *mlle_io_read_file(const char *file_path, size_t *file_size,
 }
 
 /***************************************
- * Send message of form "<COMMAND>LN".
+ * Send message of form "<COMMAND>LF".
  ***************************************/
 void mlle_send_simple_form(SSL *ssl, enum mlle_protocol_command_id command_id)
 {
@@ -191,7 +191,7 @@ void mlle_send_simple_form(SSL *ssl, enum mlle_protocol_command_id command_id)
 }
 
 /*************************************************
- * Send message of form "<COMMAND> <NUMBER>LN".
+ * Send message of form "<COMMAND> <NUMBER>LF".
  ************************************************/
 int mlle_send_number_form(SSL *ssl, enum mlle_protocol_command_id command_id,
                           long number)

@@ -335,10 +335,10 @@ Messages are in 8-bit ASCII
 
 ### Simple message with no arguments
 
-Format: "\<COMMAND>LN"
+Format: "\<COMMAND>LF"
 	
 - \<COMMAND> - command name, in all caps
-- “LN” - line feed character
+- “LF” - line feed character
 		
 Messages using this form: 
 	
@@ -349,11 +349,11 @@ Messages using this form:
 
 ### Message with decimal integer data
 
-Format: "\<COMMAND> <number>LN"
+Format: "\<COMMAND> <number>LF"
 	
 - \<COMMAND> - command name in all caps
 - \<number> - a decimal number – 32-bit signed integer, string, base 10 representation
-- “LN” - line feed character
+- “LF” - line feed character
 
 Messages using this form: 
 	
@@ -361,10 +361,11 @@ Messages using this form:
 
 ### Message with variable length data
 
-Format: "\<COMMAND> \<length>LN\<data>"
+Format: "\<COMMAND> \<length>LF\<data>"
 
 - \<COMMAND> - command name in all caps
 - \<length> - data length in bytes – 32-bit signed integer, string, base 10 representation
+- “LF” - line feed character
 - \<data> - data bytes
 
 Messages using this form: 
@@ -383,11 +384,12 @@ Messages using this form:
 
 ### Message with an integer number and a variable length data
 
-Format: "\<COMMAND> \<number> \<length>LN\<data>"
+Format: "\<COMMAND> \<number> \<length>LF\<data>"
 
 - \<COMMAND> - command name in all caps
 - \<number> - 32-bit signed integer, string, base 10 representation
 - \<length> - data length in bytes – 32-bit signed integer, string, base 10 representation
+- “LF” - line feed character
 - \<data> - data bytes
 
 Messages using this form:
