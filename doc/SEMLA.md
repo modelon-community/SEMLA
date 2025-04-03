@@ -265,6 +265,32 @@ The **packagetool** doesn't validate the tools xml file contents.
 ## SEMLA - COMMUNICATION PROTOCOL BETWEEN A TOOL AND LVE
 
 
+```mermaid
+sequenceDiagram
+    participant Tool
+    participant LVE
+
+    rect rgb(191, 223, 255)
+        note right of Tool: Handshake<br/>(performed once)
+        Tool->>LVE: VERSION <version>
+        LVE->>Tool: VERSION <version>
+        Tool->>LVE: LIB <path>
+        LVE->>Tool: YES
+    end
+    rect rgb(191, 255, 196)
+        note right of Tool: License Check<br/>(performed once)
+        Tool->>LVE: FEATURE <feature name>
+        LVE->>Tool: YES
+        Tool->>LVE: FEATURE <feature name>
+        LVE->>Tool: NO
+    end
+    rect rgb(191, 201, 255)
+        note right of Tool:  Get Decrypted File<br/>(used as many times as needed)
+        Tool->>LVE: FILE <path>
+        LVE->>Tool: FILECONTENT <contents>
+    end
+```
+
                               ┌────┐                  ┌───┐                    
                               │Tool│                  │LVE│                    
                               └─┬──┘                  └─┬─┘                    
