@@ -44,7 +44,7 @@
 
 /**********************************************************
  * Handles the command for lib.
- * The command is of the form "<LIB> <LENGTH>LN<DATA>.
+ * The command is of the form "<LIB> <LENGTH>LF<DATA>.
  *
  * Parameters:
  *      lve_ctx - communication structure.
